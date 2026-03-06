@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FIELD INVENTORY — DEAD DROP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Russo+One&display=swap" rel="stylesheet">
+
+<style>
+/* ─── RESET ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  height: 100%;
+  background: #0a0c09;
+  color: #b8c4a8;
+  font-family: 'Share Tech Mono', monospace;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
+/* ─── DESIGN TOKENS ─────────────────────── */
+:root {
+  --cell: 52px;
+  --gap: 2px;
+  --radius: 0px;
+
+  --bg:        #0a0c09;
+  --surface:   #111309;
+  --surface2:  #161a10;
+  --border:    #232b1a;
+  --border2:   #2e3822;
+  --dim:       #3a4a2a;
+  --text:      #b8c4a8;
+  --text-dim:  #596650;
+  --text-hi:   #d4e8bc;
+  --accent:    #6dbb3a;
+  --accent-lo: #2a4015;
+  --accent-hi: #90e050;
+  --warn:      #d4851a;
+  --danger:    #c03a2a;
+  --rare:      #3a7acc;
+  --epic:      #8a4acc;
+  --legend:    #cc9a20;
+  --shadow:    rgba(0,0,0,0.7);
+
+  --cell-total: calc(var(--cell) + var(--gap));
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-display: 'Russo One', sans-serif;
+}
+
+/* ─── BACKGROUND GRID TEXTURE ───────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(109,187,58,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(109,187,58,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ─── SCANLINE EFFECT ────────────────────── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+}
+
+/* ─── LAYOUT ─────────────────────────────── */
+#app {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── HEADER ─────────────────────────────── */
+#header {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+  flex-shrink: 0;
+  position: relative;
+}
+
+#header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.4;
+}
+
+#logo {
+  padding: 14px 24px;
+  border-right: 1px solid var(--border2);
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+#logo h1 {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 3vw, 26px);
+  color: var(--accent-hi);
+  letter-spacing: 4px;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(109,187,58,0.5);
+}
+
+#logo-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 3px;
+  margin-top: 4px;
+}
+
+#header-stats {
+  flex: 1;
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 28px;
+}
+
+.hstat {
+  display: flex; flex-direction: column;
+  gap: 3px;
+}
+.hstat-label {
+  font-size: 8px; letter-spacing: 2px;
+  color: var(--text-dim); text-transform: uppercase;
+}
+.hstat-value {
+  font-size: 13px; color: var(--text-hi);
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+}
+.hstat-value.accent { color: var(--accent); }
+.hstat-value.warn   { color: var(--warn); }
+
+#header-badge {
+  margin-left: auto;
+  padding: 0 20px;
+  display: flex; align-items: center;
+  border-left: 1px solid var(--border2);
+}
+#header-badge span {
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--accent);
+  border: 1px solid var(--accent-lo);
+  padding: 4px 10px;
+  background: rgba(109,187,58,0.06);
+}
+
+/* ─── MAIN CONTENT ───────────────────────── */
+#main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+}
+
+/* ─── PANEL ──────────────────────────────── */
+.panel {
+  display: flex; flex-direction: column;
+  min-height: 0; overflow: hidden;
+  position: relative;
+}
+
+.panel-left { border-right: 1px solid var(--border2); }
+
+.panel-head {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: clamp(14px, 2.5vw, 18px);
+  color: var(--text-hi);
+  letter-spacing: 3px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.panel-title-icon {
+  font-size: 16px;
+  filter: grayscale(0.3);
+}
+
+.panel-tag {
+  font-size: 8px; letter-spacing: 2px;
+  color: var(--text-dim); margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.panel-info {
+  text-align: right; display: flex; flex-direction: column; gap: 3px;
+}
+
+.pinfo-row {
+  font-size: 10px; color: var(--text-dim);
+  display: flex; gap: 6px; justify-content: flex-end; align-items: center;
+}
+
+.pinfo-val { color: var(--text); }
+.pinfo-val.green { color: var(--accent); }
+.pinfo-val.amber { color: var(--warn); }
+
+/* Capacity bar */
+.cap-bar-wrap {
+  margin-top: 5px;
+  width: 80px; height: 3px;
+  background: var(--border2);
+  position: relative; overflow: hidden;
+}
+.cap-bar-fill {
+  height: 100%; background: var(--accent);
+  transition: width 0.3s ease;
+  position: relative;
+}
+.cap-bar-fill::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent-hi);
+  box-shadow: 0 0 4px var(--accent-hi);
+}
+
+/* ─── PANEL BODY ────────────────────────── */
+.panel-body {
+  flex: 1; overflow-y: auto; overflow-x: auto;
+  padding: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ─── GRID ───────────────────────────────── */
+.inv-grid-outer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.inv-grid {
+  position: relative;
+  background: var(--surface2);
+  /* Cells are rendered inside; grid size set by JS */
+  border: 1px solid var(--border2);
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,0.5),
+    inset 0 0 0 1px rgba(255,255,255,0.015);
+}
+
+/* ─── CELLS ──────────────────────────────── */
+.cell {
+  position: absolute;
+  background: #0c0e0a;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background 80ms, box-shadow 80ms;
+  pointer-events: none; /* hit testing done in JS via coordinates */
+}
+
+/* subtle inner dot pattern */
+.cell::after {
+  content: '';
+  position: absolute;
+  bottom: 2px; right: 2px;
+  width: 2px; height: 2px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+
+.cell.highlight-valid {
+  background: rgba(109,187,58,0.18) !important;
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 6px rgba(109,187,58,0.2);
+}
+
+.cell.highlight-invalid {
+  background: rgba(192,58,42,0.2) !important;
+  border-color: var(--danger) !important;
+  box-shadow: inset 0 0 6px rgba(192,58,42,0.2);
+}
+
+/* ─── ITEMS ──────────────────────────────── */
+.item {
+  position: absolute;
+  cursor: grab;
+  z-index: 10;
+  pointer-events: all;
+  will-change: transform;
+}
+
+.item.dragging-source {
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.item-body {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: filter 0.1s;
+}
+
+/* Rarity fills */
+.r-common   .item-body { background: linear-gradient(160deg, #141810 0%, #0e1009 100%); border: 1px solid #2a3020; }
+.r-uncommon .item-body { background: linear-gradient(160deg, #0e1a0c 0%, #0a1408 100%); border: 1px solid #2a5020; }
+.r-rare     .item-body { background: linear-gradient(160deg, #0a1020 0%, #060c18 100%); border: 1px solid #1a3860; }
+.r-epic     .item-body { background: linear-gradient(160deg, #140c20 0%, #0c0818 100%); border: 1px solid #3a1870; }
+.r-legendary .item-body { background: linear-gradient(160deg, #1a1408 0%, #100c04 100%); border: 1px solid #604010; }
+
+/* Rarity left-edge accent bar */
+.item-body::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+}
+.r-common   .item-body::before { background: #444; }
+.r-uncommon .item-body::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.r-rare     .item-body::before { background: var(--rare); box-shadow: 0 0 6px var(--rare); }
+.r-epic     .item-body::before { background: var(--epic); box-shadow: 0 0 8px var(--epic); }
+.r-legendary .item-body::before { background: var(--legend); box-shadow: 0 0 10px var(--legend); animation: leg-pulse 2s ease-in-out infinite; }
+
+@keyframes leg-pulse {
+  0%,100% { box-shadow: 0 0 6px var(--legend); opacity: 0.8; }
+  50%      { box-shadow: 0 0 16px var(--legend); opacity: 1; }
+}
+
+.item:hover .item-body { filter: brightness(1.3); }
+.item.touch-selected .item-body { filter: brightness(1.4); outline: 1px solid var(--accent); }
+
+/* Item icon */
+.item-icon {
+  font-size: clamp(14px, calc(var(--cell) * 0.38), 22px);
+  line-height: 1;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.9));
+  pointer-events: none;
+}
+
+/* Item label */
+.item-label {
+  font-size: clamp(5px, calc(var(--cell) * 0.12), 8px);
+  color: rgba(180,200,160,0.5);
+  text-align: center;
+  letter-spacing: 0.3px;
+  padding: 0 3px;
+  line-height: 1.2;
+  pointer-events: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Stack count badge */
+.item-count {
+  position: absolute;
+  bottom: 3px; right: 4px;
+  font-size: 8px;
+  color: var(--warn);
+  font-family: var(--font-mono);
+  pointer-events: none;
+  z-index: 2;
+  line-height: 1;
+}
+
+/* Transfer button — appears on hover */
+.item-xfer {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 20px; height: 20px;
+  background: rgba(10,12,9,0.92);
+  border: 1px solid var(--accent-lo);
+  color: var(--accent);
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.1s, border-color 0.1s;
+  z-index: 20;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.item:hover .item-xfer,
+.item.touch-selected .item-xfer {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.item-xfer:hover {
+  background: var(--accent-lo);
+  border-color: var(--accent);
+  color: var(--accent-hi);
+}
+
+/* Rotate arrow for stash vs backpack */
+.xfer-to-stash::after    { content: '→'; }
+.xfer-to-backpack::after { content: '←'; }
+
+/* ─── DRAG GHOST ─────────────────────────── */
+#ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  transform: translate(-50%, -50%);
+}
+#ghost .item-body {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.9), 0 0 0 1px var(--accent);
+}
+#ghost .item-xfer { display: none; }
+
+/* ─── TOOLTIP ────────────────────────────── */
+#tooltip {
+  position: fixed; z-index: 8888;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: 2px solid;
+  padding: 12px 14px;
+  pointer-events: none;
+  display: none;
+  min-width: 180px; max-width: 220px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+}
+#tooltip.tt-common   { border-top-color: #555; }
+#tooltip.tt-uncommon { border-top-color: var(--accent); }
+#tooltip.tt-rare     { border-top-color: var(--rare); }
+#tooltip.tt-epic     { border-top-color: var(--epic); }
+#tooltip.tt-legendary{ border-top-color: var(--legend); }
+
+.tt-name {
+  font-family: var(--font-display);
+  font-size: 15px; letter-spacing: 2px;
+  color: var(--text-hi); margin-bottom: 2px;
+}
+.tt-rarity {
+  font-size: 8px; letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.tt-common   .tt-rarity { color: #666; }
+.tt-uncommon .tt-rarity { color: var(--accent); }
+.tt-rare     .tt-rarity { color: var(--rare); }
+.tt-epic     .tt-rarity { color: var(--epic); }
+.tt-legendary .tt-rarity { color: var(--legend); }
+.tt-desc { font-size: 10px; color: var(--text-dim); line-height: 1.6; margin-bottom: 8px; }
+.tt-stats { display: flex; flex-direction: column; gap: 3px; }
+.tt-stat { display: flex; justify-content: space-between; font-size: 10px; }
+.tt-stat-key { color: var(--text-dim); }
+.tt-stat-val { color: var(--accent-hi); }
+.tt-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 9px; color: var(--text-dim); display: flex; justify-content: space-between; }
+
+/* ─── CONTEXT MENU ───────────────────────── */
+#ctx {
+  position: fixed; z-index: 9000;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.9);
+  display: none; overflow: hidden; min-width: 170px;
+}
+.ctx-row {
+  padding: 9px 16px;
+  font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text); transition: background 0.08s, color 0.08s;
+}
+.ctx-row:last-child { border-bottom: none; }
+.ctx-row:hover { background: var(--accent-lo); color: var(--accent-hi); }
+.ctx-row.danger:hover { background: rgba(192,58,42,0.15); color: #e05040; }
+.ctx-icon { width: 14px; text-align: center; font-size: 13px; }
+
+/* ─── TOASTS ─────────────────────────────── */
+#toasts {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; display: flex; flex-direction: column; align-items: center;
+  gap: 6px; pointer-events: none;
+}
+.toast {
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 7px 18px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-left: 3px solid var(--accent);
+  color: var(--text-hi); white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  animation: toast-show 0.2s ease, toast-hide 0.25s ease 2s forwards;
+}
+.toast.err { border-left-color: var(--danger); }
+.toast.ok  { border-left-color: var(--accent); }
+.toast.info{ border-left-color: var(--rare); }
+@keyframes toast-show { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toast-hide { to   { opacity:0; transform:translateY(-5px); } }
+
+/* ─── ITEM LAND ANIMATION ────────────────── */
+@keyframes item-land {
+  0%   { transform: scale(0.82); opacity: 0; }
+  60%  { transform: scale(1.04); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.item.land { animation: item-land 0.22s cubic-bezier(0.2,0.8,0.4,1) forwards; }
+
+/* ─── TRANSFER FLY OUT ───────────────────── */
+@keyframes item-fly {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.7) translateY(-10px); }
+}
+.item.flying { animation: item-fly 0.25s ease forwards; pointer-events: none; }
+
+/* ─── RESPONSIVE ─────────────────────────── */
+
+/* Landscape small (phones in landscape) */
+@media (orientation: landscape) and (max-height: 480px) {
+  :root { --cell: 38px; }
+  #logo h1 { font-size: 16px; }
+  .panel-head { padding: 8px 12px 6px; }
+  .panel-body { padding: 10px; }
+}
+
+/* Portrait mobile */
+@media (max-width: 680px), (orientation: portrait) and (max-width: 900px) {
+  :root { --cell: 44px; }
+
+  #main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    overflow-y: auto; overflow-x: hidden;
+    /* allow scrolling through both panels */
+  }
+
+  #main { flex: none; }
+  body { height: auto; overflow-y: auto; }
+
+  .panel-left { border-right: none; border-bottom: 1px solid var(--border2); }
+
+  .panel { overflow: visible; }
+  .panel-body { overflow: visible; }
+
+  #header-stats { gap: 16px; }
+  #header-badge { display: none; }
+}
+
+/* Very small portrait */
+@media (max-width: 420px) {
+  :root { --cell: 40px; }
+  #header-stats .hstat:nth-child(n+3) { display: none; }
+}
+
+/* Tablets — comfortable */
+@media (min-width: 1200px) {
+  :root { --cell: 56px; }
+}
+
+/* ─── SCROLLBAR ──────────────────────────── */
+html { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <header id="header">
+    <div id="logo">
+      <h1>DEAD DROP</h1>
+      <div id="logo-sub">FIELD INVENTORY SYSTEM</div>
+    </div>
+    <div id="header-stats">
+      <div class="hstat">
+        <div class="hstat-label">Carry Weight</div>
+        <div class="hstat-value accent" id="hs-weight">0.0 kg</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Pack Load</div>
+        <div class="hstat-value" id="hs-bp-cap">0 / 0</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Stash Value</div>
+        <div class="hstat-value" id="hs-value">₽ 0</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Items Stashed</div>
+        <div class="hstat-value" id="hs-count">0</div>
+      </div>
+    </div>
+    <div id="header-badge"><span>SECTOR 7 — BUNKER</span></div>
+  </header>
+
+  <div id="main">
+
+    <!-- ── BACKPACK PANEL ── -->
+    <div class="panel panel-left" id="panel-bp">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title"><span class="panel-title-icon">🎒</span> BACKPACK</div>
+          <div class="panel-tag">Field carry · lost on death</div>
+        </div>
+        <div class="panel-info">
+          <div class="pinfo-row">
+            <span>Slots</span>
+            <span class="pinfo-val green" id="bp-used">0</span>
+            <span class="pinfo-val">/</span>
+            <span class="pinfo-val" id="bp-total">0</span>
+          </div>
+          <div class="pinfo-row">
+            <span>Weight</span>
+            <span class="pinfo-val amber" id="bp-weight">0.0 kg</span>
+          </div>
+          <div class="cap-bar-wrap">
+            <div class="cap-bar-fill" id="bp-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body" id="body-bp">
+        <div class="inv-grid-outer">
+          <div class="inv-grid" id="grid-bp"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STASH PANEL ── -->
+    <div class="panel panel-right" id="panel-st">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title"><span class="panel-title-icon">🏛</span> STASH</div>
+          <div class="panel-tag">Bunker storage · persistent</div>
+        </div>
+        <div class="panel-info">
+          <div class="pinfo-row">
+            <span>Slots</span>
+            <span class="pinfo-val green" id="st-used">0</span>
+            <span class="pinfo-val">/</span>
+            <span class="pinfo-val" id="st-total">0</span>
+          </div>
+          <div class="pinfo-row">
+            <span>Value</span>
+            <span class="pinfo-val amber" id="st-value">₽ 0</span>
+          </div>
+          <div class="cap-bar-wrap">
+            <div class="cap-bar-fill" id="st-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body" id="body-st">
+        <div class="inv-grid-outer">
+          <div class="inv-grid" id="grid-st"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#main -->
+</div><!-- /#app -->
+
+<div id="ghost"></div>
+<div id="tooltip"></div>
+<div id="ctx"></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════
+   ITEM DEFINITIONS
+══════════════════════════════════════════════════════════ */
+const DEFS = {
+  pistol:     { name:'P-9 Compact',     icon:'🔫', rarity:'common',    w:2, h:1, weight:0.7, value:500,  desc:'Reliable 9mm sidearm.',              stats:{ Damage:'25', Ammo:'9mm', RPM:'400' } },
+  pistol_b:   { name:'Makarov PM',      icon:'🔫', rarity:'uncommon',  w:2, h:1, weight:0.8, value:800,  desc:'Classic Russian military sidearm.',   stats:{ Damage:'28', Ammo:'9mm', RPM:'350' } },
+  rifle:      { name:'AK-74U',          icon:'🔫', rarity:'rare',      w:4, h:2, weight:3.4, value:2500, desc:'Short-barrel assault rifle.',          stats:{ Damage:'45', Ammo:'5.45', RPM:'650' } },
+  rifle_b:    { name:'M4A1',            icon:'🔫', rarity:'epic',      w:4, h:2, weight:3.2, value:4200, desc:'Mil-spec carbine with rail system.',   stats:{ Damage:'42', Ammo:'5.56', RPM:'800' } },
+  shotgun:    { name:'Mossberg 500',    icon:'🔫', rarity:'uncommon',  w:3, h:1, weight:3.1, value:1200, desc:'Pump-action. Devastating up close.',   stats:{ Damage:'18×8', Ammo:'12ga', RPM:'60' } },
+  ammo_9:     { name:'9mm FMJ ×30',     icon:'🟡', rarity:'common',    w:1, h:1, weight:0.3, value:50,   desc:'Standard pistol rounds.',             stats:{ Pen:'12', Dmg:'25' }, count:30 },
+  ammo_545:   { name:'5.45 BP ×30',     icon:'🟠', rarity:'uncommon',  w:1, h:1, weight:0.4, value:150,  desc:'Armor-piercing rifle rounds.',        stats:{ Pen:'48', Dmg:'40' }, count:30 },
+  ammo_556:   { name:'5.56 M855 ×30',   icon:'🟠', rarity:'rare',      w:1, h:1, weight:0.4, value:200,  desc:'NATO standard rifle ammunition.',     stats:{ Pen:'52', Dmg:'38' }, count:30 },
+  ammo_12ga:  { name:'12ga Slug ×8',    icon:'🟤', rarity:'common',    w:1, h:1, weight:0.5, value:80,   desc:'Solid slug rounds.',                  stats:{ Pen:'25', Dmg:'140' }, count:8 },
+  medkit:     { name:'AI-2 Medkit',     icon:'💊', rarity:'common',    w:1, h:1, weight:0.2, value:200,  desc:'Basic field medkit. +40 HP.',         stats:{ Heal:'+40', Time:'4s' } },
+  salewa:     { name:'Salewa IFAK',     icon:'🩹', rarity:'uncommon',  w:2, h:1, weight:0.4, value:800,  desc:'Advanced trauma kit. +100 HP.',       stats:{ Heal:'+100', Time:'6s' } },
+  surv12:     { name:'Survival Kit',    icon:'🧰', rarity:'rare',      w:2, h:2, weight:1.2, value:1500, desc:'Multi-use field survival kit.',        stats:{ Heal:'+220', Uses:'3' } },
+  armor:      { name:'PACA Vest',       icon:'🦺', rarity:'common',    w:2, h:2, weight:4.0, value:1200, desc:'Soft ballistic vest. Class 2.',        stats:{ Class:'2', Dur:'70' } },
+  armor_b:    { name:'Kirasa-N Plate',  icon:'🦺', rarity:'rare',      w:2, h:3, weight:6.5, value:3800, desc:'Hard plate carrier. Class 4.',         stats:{ Class:'4', Dur:'120' } },
+  helmet:     { name:'SSH-68',          icon:'⛑️', rarity:'common',    w:2, h:2, weight:1.4, value:800,  desc:'Steel helmet. Better than nothing.',   stats:{ Class:'2', Cov:'45%' } },
+  helmet_b:   { name:'TC-800',          icon:'⛑️', rarity:'epic',      w:2, h:2, weight:1.8, value:4500, desc:'Modern FAST helmet with face shield.', stats:{ Class:'5', Cov:'80%' } },
+  grenade:    { name:'F-1 Frag',        icon:'💣', rarity:'uncommon',  w:1, h:1, weight:0.6, value:600,  desc:'Fragmentation grenade. 5m kill radius.',stats:{ Dmg:'740', Rad:'5m' } },
+  smoke:      { name:'Smoke Grenade',   icon:'💨', rarity:'common',    w:1, h:1, weight:0.5, value:300,  desc:'Tactical smoke. 20s duration.',       stats:{ Dur:'20s', Rad:'8m' } },
+  knife:      { name:'Morakniv Blade',  icon:'🔪', rarity:'common',    w:1, h:2, weight:0.3, value:300,  desc:'Silent takedown tool.',               stats:{ Dmg:'55', Speed:'1.5s' } },
+  watch:      { name:'Gold Watch',      icon:'⌚', rarity:'legendary', w:1, h:1, weight:0.1, value:5000, desc:'Pre-war antique. Extraordinarily rare.',stats:{ Value:'₽5000', Type:'Barter' } },
+  dogtag:     { name:'Dog Tag',         icon:'🏷️', rarity:'rare',      w:1, h:1, weight:0.1, value:2000, desc:'Fallen operator. Quest item.',         stats:{ Value:'₽2000', Type:'Quest' } },
+  fuel:       { name:'Fuel Canister',   icon:'⛽', rarity:'uncommon',  w:1, h:2, weight:2.0, value:450,  desc:'Used for generator fuel.',             stats:{ Type:'Resource', Uses:'3' } },
+  battery:    { name:'Battery Pack',    icon:'🔋', rarity:'common',    w:1, h:1, weight:0.4, value:200,  desc:'Powers various devices.',              stats:{ Type:'Resource', Charge:'100%' } },
+  food:       { name:'Army Rations',    icon:'🥫', rarity:'common',    w:1, h:1, weight:0.8, value:120,  desc:'High-cal field rations.',              stats:{ Energy:'+35', Hydration:'+15' } },
+  backpack2:  { name:'MOLLE Pack',      icon:'🎒', rarity:'rare',      w:2, h:3, weight:2.1, value:900,  desc:'Large-frame tactical backpack.',       stats:{ Slots:'+25', Weight:'2.1 kg' } },
+  scope:      { name:'PSO-1 Scope',     icon:'🔭', rarity:'uncommon',  w:2, h:1, weight:0.6, value:700,  desc:'4x magnification rifle scope.',       stats:{ Zoom:'4×', Compatible:'AK/SVD' } },
+  suppressor: { name:'Silencer 9mm',    icon:'🔩', rarity:'rare',      w:2, h:1, weight:0.3, value:1100, desc:'Threaded suppressor. Reduces noise.',  stats:{ Noise:'-40dB', Compatible:'9mm' } },
+};
+
+const RARITIES = ['common','uncommon','rare','epic','legendary'];
+
+/* ══════════════════════════════════════════════════════════
+   GRID CONFIG
+══════════════════════════════════════════════════════════ */
+const GRID_CFG = {
+  bp: { cols: 5,  rows: 6,  el: null, opposite: 'st', label: 'backpack' },
+  st: { cols: 10, rows: 12, el: null, opposite: 'bp', label: 'stash'    },
+};
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+let _uid = 1;
+const newUid = () => 'u' + (_uid++);
+
+// items[gridId] = array of { uid, defId, col, row }
+const state = {
+  items: { bp: [], st: [] },
+};
+
+const SAVE_KEY = 'deadDrop_v4';
+
+/* ══════════════════════════════════════════════════════════
+   PERSISTENCE
+══════════════════════════════════════════════════════════ */
+function saveState() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ items: state.items.st, uid: _uid }));
+  } catch(e) {}
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (d.uid) _uid = d.uid;
+    if (d.items) { state.items.st = d.items; return true; }
+  } catch(e) {}
+  return false;
+}
+
+/* ══════════════════════════════════════════════════════════
+   OCCUPANCY MAP
+══════════════════════════════════════════════════════════ */
+function buildOccMap(gridId, excludeUid = null) {
+  const cfg = GRID_CFG[gridId];
+  const map = Array.from({ length: cfg.rows }, () => new Array(cfg.cols).fill(null));
+  for (const item of state.items[gridId]) {
+    if (item.uid === excludeUid) continue;
+    const def = DEFS[item.defId];
+    for (let r = 0; r < def.h; r++)
+      for (let c = 0; c < def.w; c++) {
+        const rr = item.row + r, cc = item.col + c;
+        if (rr < cfg.rows && cc < cfg.cols) map[rr][cc] = item.uid;
+      }
+  }
+  return map;
+}
+
+function canFit(gridId, col, row, w, h, excludeUid = null) {
+  const cfg = GRID_CFG[gridId];
+  if (col < 0 || row < 0 || col + w > cfg.cols || row + h > cfg.rows) return false;
+  const occ = buildOccMap(gridId, excludeUid);
+  for (let r = 0; r < h; r++)
+    for (let c = 0; c < w; c++)
+      if (occ[row + r][col + c] !== null) return false;
+  return true;
+}
+
+// Top-left scan for first available slot
+function findSlot(gridId, w, h, excludeUid = null) {
+  const cfg = GRID_CFG[gridId];
+  for (let r = 0; r <= cfg.rows - h; r++)
+    for (let c = 0; c <= cfg.cols - w; c++)
+      if (canFit(gridId, c, r, w, h, excludeUid)) return { col: c, row: r };
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CELL SIZE (from CSS custom property)
+══════════════════════════════════════════════════════════ */
+function cellPx() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell').trim()) || 52;
+}
+function gapPx() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap').trim()) || 2;
+}
+function stride() { return cellPx() + gapPx(); }
+
+function colRowToXY(col, row) {
+  const s = stride();
+  return { x: col * s, y: row * s };
+}
+function xyToColRow(x, y) {
+  const s = stride();
+  return { col: Math.round(x / s), row: Math.round(y / s) };
+}
+function itemSizePx(w, h) {
+  const c = cellPx(), g = gapPx();
+  return { w: w * c + (w - 1) * g, h: h * c + (h - 1) * g };
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════════════ */
+function renderGrid(gridId) {
+  const cfg = GRID_CFG[gridId];
+  const el  = document.getElementById('grid-' + gridId);
+  cfg.el = el;
+  el.innerHTML = '';
+
+  const c = cellPx(), g = gapPx(), s = stride();
+  const W = cfg.cols * c + (cfg.cols - 1) * g;
+  const H = cfg.rows * c + (cfg.rows - 1) * g;
+  el.style.width  = W + 'px';
+  el.style.height = H + 'px';
+
+  // Render cells
+  for (let r = 0; r < cfg.rows; r++) {
+    for (let co = 0; co < cfg.cols; co++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.left   = (co * s) + 'px';
+      cell.style.top    = (r  * s) + 'px';
+      cell.style.width  = c + 'px';
+      cell.style.height = c + 'px';
+      cell.dataset.col = co;
+      cell.dataset.row = r;
+      cell.dataset.grid = gridId;
+      el.appendChild(cell);
+    }
+  }
+
+  // Render items
+  for (const item of state.items[gridId]) {
+    renderItem(gridId, item, true);
+  }
+
+  updateStats();
+}
+
+function renderItem(gridId, item, noAnim = false) {
+  const def = DEFS[item.defId];
+  const pos = colRowToXY(item.col, item.row);
+  const siz = itemSizePx(def.w, def.h);
+  const el  = document.createElement('div');
+
+  el.className = `item r-${def.rarity}`;
+  el.dataset.uid  = item.uid;
+  el.dataset.grid = gridId;
+  el.style.left   = pos.x + 'px';
+  el.style.top    = pos.y + 'px';
+  el.style.width  = siz.w + 'px';
+  el.style.height = siz.h + 'px';
+
+  const opposite = GRID_CFG[gridId].opposite;
+  const xferClass = opposite === 'st' ? 'xfer-to-stash' : 'xfer-to-backpack';
+  const xferTitle = opposite === 'st' ? 'Send to Stash' : 'Send to Backpack';
+
+  el.innerHTML = `
+    <div class="item-body">
+      <div class="item-icon">${def.icon}</div>
+      <div class="item-label">${def.name}</div>
+      ${def.count ? `<div class="item-count">×${def.count}</div>` : ''}
+    </div>
+    <div class="item-xfer ${xferClass}" title="${xferTitle}" data-uid="${item.uid}" data-grid="${gridId}"></div>
+  `;
+
+  if (!noAnim) el.classList.add('land');
+
+  const grid = document.getElementById('grid-' + gridId);
+  grid.appendChild(el);
+
+  // Events
+  bindItem(el, item.uid, gridId);
+}
+
+function removeItemEl(uid) {
+  const el = document.querySelector(`.item[data-uid="${uid}"]`);
+  if (el) el.remove();
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════════════════ */
+function updateStats() {
+  let bpSlots = 0, bpWeight = 0;
+  for (const it of state.items.bp) {
+    const d = DEFS[it.defId];
+    bpSlots += d.w * d.h;
+    bpWeight += d.weight;
+  }
+  const bpCap = GRID_CFG.bp.cols * GRID_CFG.bp.rows;
+
+  let stSlots = 0, stValue = 0;
+  for (const it of state.items.st) {
+    const d = DEFS[it.defId];
+    stSlots += d.w * d.h;
+    stValue += d.value;
+  }
+  const stCap = GRID_CFG.st.cols * GRID_CFG.st.rows;
+
+  // Header
+  document.getElementById('hs-weight').textContent = bpWeight.toFixed(1) + ' kg';
+  document.getElementById('hs-bp-cap').textContent  = bpSlots + ' / ' + bpCap;
+  document.getElementById('hs-value').textContent   = '₽ ' + stValue.toLocaleString();
+  document.getElementById('hs-count').textContent   = state.items.st.length;
+
+  // BP panel
+  document.getElementById('bp-used').textContent   = bpSlots;
+  document.getElementById('bp-total').textContent  = bpCap;
+  document.getElementById('bp-weight').textContent = bpWeight.toFixed(1) + ' kg';
+  document.getElementById('bp-bar').style.width    = Math.min(100, (bpSlots / bpCap) * 100) + '%';
+
+  // ST panel
+  document.getElementById('st-used').textContent  = stSlots;
+  document.getElementById('st-total').textContent = stCap;
+  document.getElementById('st-value').textContent = '₽ ' + stValue.toLocaleString();
+  document.getElementById('st-bar').style.width   = Math.min(100, (stSlots / stCap) * 100) + '%';
+}
+
+/* ══════════════════════════════════════════════════════════
+   ITEM OPERATIONS
+══════════════════════════════════════════════════════════ */
+function addItem(gridId, defId, col, row, customUid = null) {
+  const id = customUid || newUid();
+  const def = DEFS[defId];
+  if (!canFit(gridId, col, row, def.w, def.h)) return null;
+  const item = { uid: id, defId, col, row };
+  state.items[gridId].push(item);
+  return item;
+}
+
+function removeItem(gridId, uid) {
+  const idx = state.items[gridId].findIndex(i => i.uid === uid);
+  if (idx === -1) return null;
+  return state.items[gridId].splice(idx, 1)[0];
+}
+
+function moveItem(fromGrid, toGrid, uid, toCol, toRow) {
+  const item = state.items[fromGrid].find(i => i.uid === uid);
+  if (!item) return false;
+  const def = DEFS[item.defId];
+  const sameGrid = fromGrid === toGrid;
+  const excludeUid = sameGrid ? uid : null;
+  if (!canFit(toGrid, toCol, toRow, def.w, def.h, excludeUid)) return false;
+  removeItem(fromGrid, uid);
+  addItem(toGrid, item.defId, toCol, toRow, uid);
+  return true;
+}
+
+function transferItem(fromGrid, uid) {
+  const item = state.items[fromGrid].find(i => i.uid === uid);
+  if (!item) return;
+  const def = DEFS[item.defId];
+  const toGrid = GRID_CFG[fromGrid].opposite;
+  const slot = findSlot(toGrid, def.w, def.h);
+  if (!slot) {
+    toast('No space in ' + GRID_CFG[toGrid].label + '!', 'err');
+    return;
+  }
+  // Animate out
+  const el = document.querySelector(`.item[data-uid="${uid}"]`);
+  if (el) {
+    el.classList.add('flying');
+    setTimeout(() => {
+      el.remove();
+      removeItem(fromGrid, uid);
+      const newItem = addItem(toGrid, def.id || item.defId, slot.col, slot.row, uid);
+      renderItem(toGrid, newItem);
+      updateStats();
+      saveState();
+      toast(def.name + ' → ' + GRID_CFG[toGrid].label, 'ok');
+    }, 240);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   HIT TEST — given page coords, return gridId + col + row
+══════════════════════════════════════════════════════════ */
+function hitGrid(clientX, clientY) {
+  for (const gridId of ['bp', 'st']) {
+    const el = document.getElementById('grid-' + gridId);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) continue;
+    const s = stride();
+    const col = Math.floor((clientX - r.left) / s);
+    const row = Math.floor((clientY - r.top)  / s);
+    const cfg = GRID_CFG[gridId];
+    if (col < 0 || col >= cfg.cols || row < 0 || row >= cfg.rows) continue;
+    return { gridId, col, row };
+  }
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CELL HIGHLIGHTING
+══════════════════════════════════════════════════════════ */
+function highlightCells(gridId, col, row, w, h, valid) {
+  const gridEl = document.getElementById('grid-' + gridId);
+  const cfg    = GRID_CFG[gridId];
+  const cls    = valid ? 'highlight-valid' : 'highlight-invalid';
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const rr = row + r, cc = col + c;
+      if (rr < 0 || rr >= cfg.rows || cc < 0 || cc >= cfg.cols) continue;
+      const cell = gridEl.querySelector(`.cell[data-row="${rr}"][data-col="${cc}"]`);
+      if (cell) cell.classList.add(cls);
+    }
+  }
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.cell.highlight-valid, .cell.highlight-invalid').forEach(c => {
+    c.classList.remove('highlight-valid', 'highlight-invalid');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   DRAG STATE
+══════════════════════════════════════════════════════════ */
+const drag = {
+  active: false,
+  uid: null,
+  fromGrid: null,
+  def: null,
+  grabCol: 0,  // which cell within item was grabbed
+  grabRow: 0,
+  hasMoved: false,
+};
+
+function startDrag(uid, fromGrid, clientX, clientY, sourceEl) {
+  const item = state.items[fromGrid].find(i => i.uid === uid);
+  if (!item) return;
+  const def = DEFS[item.defId];
+  const siz = itemSizePx(def.w, def.h);
+  const rect = sourceEl.getBoundingClientRect();
+  const s = stride();
+
+  drag.active   = true;
+  drag.uid      = uid;
+  drag.fromGrid = fromGrid;
+  drag.def      = def;
+  drag.hasMoved = false;
+  drag.grabCol  = Math.max(0, Math.min(def.w - 1, Math.floor((clientX - rect.left) / s)));
+  drag.grabRow  = Math.max(0, Math.min(def.h - 1, Math.floor((clientY - rect.top)  / s)));
+
+  // Ghost
+  const ghost = document.getElementById('ghost');
+  ghost.innerHTML = sourceEl.innerHTML;
+  ghost.className = `item r-${def.rarity}`;
+  ghost.style.width  = siz.w + 'px';
+  ghost.style.height = siz.h + 'px';
+  ghost.style.display = 'block';
+  moveGhost(clientX, clientY);
+
+  // Dim original
+  sourceEl.classList.add('dragging-source');
+
+  document.body.style.cursor = 'grabbing';
+  hideTooltip();
+}
+
+function moveGhost(cx, cy) {
+  const g = document.getElementById('ghost');
+  g.style.left = cx + 'px';
+  g.style.top  = cy + 'px';
+}
+
+function endDrag(clientX, clientY) {
+  if (!drag.active) return;
+  drag.active = false;
+
+  document.getElementById('ghost').style.display = 'none';
+  document.body.style.cursor = '';
+  clearHighlights();
+
+  const srcEl = document.querySelector(`.item[data-uid="${drag.uid}"]`);
+  if (srcEl) srcEl.classList.remove('dragging-source');
+
+  if (!drag.hasMoved) return;
+
+  const hit = hitGrid(clientX, clientY);
+  if (hit) {
+    const toCol = hit.col - drag.grabCol;
+    const toRow = hit.row - drag.grabRow;
+    const ok = moveItem(drag.fromGrid, hit.gridId, drag.uid, toCol, toRow);
+    if (ok) {
+      if (srcEl) srcEl.remove();
+      const newItem = state.items[hit.gridId].find(i => i.uid === drag.uid);
+      if (newItem) renderItem(hit.gridId, newItem);
+      if (drag.fromGrid !== hit.gridId) {
+        // Cross-grid: also redraw source grid stats
+      }
+      updateStats();
+      saveState();
+    } else {
+      toast('Cannot place there', 'err');
+    }
+  }
+
+  drag.uid = null;
+  drag.def = null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ITEM EVENT BINDING
+══════════════════════════════════════════════════════════ */
+function bindItem(el, uid, gridId) {
+  const def = DEFS[state.items[gridId].find(i => i.uid === uid)?.defId];
+  if (!def) return;
+
+  /* ── Pointer events (handles both mouse + touch) ── */
+  el.addEventListener('pointerdown', e => {
+    if (e.target.classList.contains('item-xfer')) return; // handled separately
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    el.setPointerCapture(e.pointerId);
+    startDrag(uid, gridId, e.clientX, e.clientY, el);
+  });
+
+  el.addEventListener('pointermove', e => {
+    if (!drag.active || drag.uid !== uid) return;
+    drag.hasMoved = true;
+    moveGhost(e.clientX, e.clientY);
+    clearHighlights();
+    const hit = hitGrid(e.clientX, e.clientY);
+    if (hit) {
+      const toCol = hit.col - drag.grabCol;
+      const toRow = hit.row - drag.grabRow;
+      const excl = drag.fromGrid === hit.gridId ? drag.uid : null;
+      const valid = canFit(hit.gridId, toCol, toRow, drag.def.w, drag.def.h, excl);
+      highlightCells(hit.gridId, toCol, toRow, drag.def.w, drag.def.h, valid);
+    }
+  });
+
+  el.addEventListener('pointerup', e => {
+    if (!drag.active || drag.uid !== uid) return;
+    endDrag(e.clientX, e.clientY);
+  });
+
+  el.addEventListener('pointercancel', () => {
+    if (drag.active && drag.uid === uid) {
+      drag.active = false;
+      document.getElementById('ghost').style.display = 'none';
+      clearHighlights();
+      document.body.style.cursor = '';
+      const s = document.querySelector(`.item[data-uid="${uid}"]`);
+      if (s) s.classList.remove('dragging-source');
+    }
+  });
+
+  /* ── Tooltip (desktop hover) ── */
+  el.addEventListener('mouseenter', e => {
+    if (drag.active) return;
+    showTooltip(def, e.clientX, e.clientY);
+  });
+  el.addEventListener('mousemove', e => {
+    if (!drag.active) posTooltip(e.clientX, e.clientY);
+  });
+  el.addEventListener('mouseleave', () => hideTooltip());
+
+  /* ── Long press for tooltip on mobile ── */
+  let lpTimer = null;
+  el.addEventListener('touchstart', () => {
+    lpTimer = setTimeout(() => {
+      el.classList.add('touch-selected');
+      // tooltip uses touch position — approximate center of item
+      const r = el.getBoundingClientRect();
+      showTooltip(def, r.right, r.top);
+      setTimeout(() => { el.classList.remove('touch-selected'); hideTooltip(); }, 3000);
+    }, 500);
+  }, { passive: true });
+  el.addEventListener('touchend', () => clearTimeout(lpTimer));
+  el.addEventListener('touchmove', () => clearTimeout(lpTimer), { passive: true });
+
+  /* ── Right-click context menu ── */
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    hideTooltip();
+    showCtx(e.clientX, e.clientY, uid, gridId);
+  });
+
+  /* ── Transfer button ── */
+  const xferBtn = el.querySelector('.item-xfer');
+  if (xferBtn) {
+    xferBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      transferItem(gridId, uid);
+    });
+    xferBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOOLTIP
+══════════════════════════════════════════════════════════ */
+function showTooltip(def, cx, cy) {
+  const tt = document.getElementById('tooltip');
+  const statsHTML = Object.entries(def.stats || {}).map(([k,v]) =>
+    `<div class="tt-stat"><span class="tt-stat-key">${k}</span><span class="tt-stat-val">${v}</span></div>`
+  ).join('');
+  tt.className = 'tt-' + def.rarity;
+  tt.innerHTML = `
+    <div class="tt-name">${def.name}</div>
+    <div class="tt-rarity">${def.rarity}${def.count ? ' &nbsp;×'+def.count : ''}</div>
+    <div class="tt-desc">${def.desc}</div>
+    <div class="tt-stats">${statsHTML}</div>
+    <div class="tt-footer"><span>${def.w}×${def.h} slots</span><span>${def.weight} kg&nbsp;&nbsp;₽${def.value}</span></div>
+  `;
+  tt.style.display = 'block';
+  posTooltip(cx, cy);
+}
+
+function posTooltip(cx, cy) {
+  const tt  = document.getElementById('tooltip');
+  const tw  = 220, th = 160;
+  const vw  = window.innerWidth, vh = window.innerHeight;
+  let left  = cx + 18, top = cy + 12;
+  if (left + tw > vw - 6) left = cx - tw - 10;
+  if (top  + th > vh - 6) top  = cy - th - 10;
+  tt.style.left = Math.max(4, left) + 'px';
+  tt.style.top  = Math.max(4, top)  + 'px';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+/* ══════════════════════════════════════════════════════════
+   CONTEXT MENU
+══════════════════════════════════════════════════════════ */
+function showCtx(cx, cy, uid, fromGrid) {
+  const ctx = document.getElementById('ctx');
+  const toGrid = GRID_CFG[fromGrid].opposite;
+  const def = DEFS[state.items[fromGrid].find(i => i.uid === uid)?.defId];
+  const toLabel = toGrid === 'st' ? 'Send to Stash' : 'Send to Backpack';
+
+  ctx.innerHTML = `
+    <div class="ctx-row" data-action="xfer"><span class="ctx-icon">${toGrid === 'st' ? '→' : '←'}</span>${toLabel}</div>
+    <div class="ctx-row" data-action="inspect"><span class="ctx-icon">◈</span>Inspect</div>
+    <div class="ctx-row danger" data-action="discard"><span class="ctx-icon">✕</span>Discard</div>
+  `;
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const mw = 180, mh = 110;
+  ctx.style.left    = Math.min(cx, vw - mw - 6) + 'px';
+  ctx.style.top     = Math.min(cy, vh - mh - 6) + 'px';
+  ctx.style.display = 'block';
+
+  ctx.querySelectorAll('.ctx-row').forEach(row => {
+    row.addEventListener('click', () => {
+      hideCtx();
+      switch (row.dataset.action) {
+        case 'xfer':
+          transferItem(fromGrid, uid);
+          break;
+        case 'inspect':
+          if (def) showTooltip(def, cx, cy - 150);
+          setTimeout(hideTooltip, 5000);
+          break;
+        case 'discard': {
+          const item = state.items[fromGrid].find(i => i.uid === uid);
+          if (item) {
+            removeItem(fromGrid, uid);
+            removeItemEl(uid);
+            updateStats();
+            saveState();
+            toast(def?.name + ' discarded', '');
+          }
+          break;
+        }
+      }
+    });
+  });
+}
+
+function hideCtx() { document.getElementById('ctx').style.display = 'none'; }
+document.addEventListener('click', e => { if (!e.target.closest('#ctx')) hideCtx(); });
+document.addEventListener('contextmenu', e => { if (!e.target.closest('.item')) hideCtx(); });
+
+/* ══════════════════════════════════════════════════════════
+   TOASTS
+══════════════════════════════════════════════════════════ */
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+/* ══════════════════════════════════════════════════════════
+   KEYBOARD
+══════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { hideCtx(); hideTooltip(); }
+});
+
+/* ══════════════════════════════════════════════════════════
+   RESIZE — rebuild grids with correct cell sizes
+══════════════════════════════════════════════════════════ */
+let resizeRaf = null;
+window.addEventListener('resize', () => {
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    renderGrid('bp');
+    renderGrid('st');
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   INITIAL DATA
+══════════════════════════════════════════════════════════ */
+function populateBackpack() {
+  const bpStart = [
+    { id:'pistol',    col:0, row:0 },
+    { id:'ammo_9',    col:2, row:0 },
+    { id:'ammo_9',    col:3, row:0 },
+    { id:'medkit',    col:4, row:0 },
+    { id:'grenade',   col:0, row:1 },
+    { id:'smoke',     col:1, row:1 },
+    { id:'knife',     col:2, row:1 },
+    { id:'food',      col:4, row:1 },
+    { id:'battery',   col:3, row:1 },
+    { id:'salewa',    col:0, row:2 },
+  ];
+  for (const s of bpStart) {
+    const def = DEFS[s.id];
+    if (canFit('bp', s.col, s.row, def.w, def.h))
+      addItem('bp', s.id, s.col, s.row);
+  }
+}
+
+function populateStashDefault() {
+  const stStart = [
+    { id:'rifle',       col:0, row:0 },
+    { id:'rifle_b',     col:0, row:2 },
+    { id:'shotgun',     col:4, row:0 },
+    { id:'pistol_b',    col:4, row:1 },
+    { id:'suppressor',  col:6, row:1 },
+    { id:'scope',       col:8, row:0 },
+    { id:'ammo_545',    col:0, row:4 },
+    { id:'ammo_545',    col:1, row:4 },
+    { id:'ammo_545',    col:2, row:4 },
+    { id:'ammo_556',    col:3, row:4 },
+    { id:'ammo_556',    col:4, row:4 },
+    { id:'ammo_9',      col:5, row:4 },
+    { id:'ammo_9',      col:6, row:4 },
+    { id:'ammo_12ga',   col:7, row:4 },
+    { id:'armor',       col:0, row:5 },
+    { id:'armor_b',     col:2, row:5 },
+    { id:'helmet',      col:4, row:5 },
+    { id:'helmet_b',    col:6, row:5 },
+    { id:'surv12',      col:8, row:5 },
+    { id:'salewa',      col:0, row:8 },
+    { id:'salewa',      col:2, row:8 },
+    { id:'medkit',      col:4, row:8 },
+    { id:'medkit',      col:5, row:8 },
+    { id:'medkit',      col:6, row:8 },
+    { id:'fuel',        col:7, row:8 },
+    { id:'fuel',        col:8, row:8 },
+    { id:'watch',       col:9, row:0 },
+    { id:'dogtag',      col:9, row:1 },
+    { id:'dogtag',      col:9, row:2 },
+    { id:'backpack2',   col:7, row:9 },
+    { id:'battery',     col:0, row:10 },
+    { id:'food',        col:1, row:10 },
+    { id:'food',        col:2, row:10 },
+    { id:'food',        col:3, row:10 },
+  ];
+  for (const s of stStart) {
+    const def = DEFS[s.id];
+    if (def && canFit('st', s.col, s.row, def.w, def.h))
+      addItem('st', s.id, s.col, s.row);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════════════ */
+(function init() {
+  const hadSave = loadSaved();
+  if (!hadSave) populateStashDefault();
+  populateBackpack();  // backpack always fresh (session carry)
+  renderGrid('bp');
+  renderGrid('st');
+})();
+</script>
+</body>
+</html>
