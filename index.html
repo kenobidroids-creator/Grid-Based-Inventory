@@ -3,675 +3,447 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FIELD INVENTORY — DEAD DROP</title>
+<title>DEAD DROP — Field Inventory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Russo+One&display=swap" rel="stylesheet">
-
 <style>
-/* ─── RESET ─────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; }
-body {
-  height: 100%;
-  background: #0a0c09;
-  color: #b8c4a8;
-  font-family: 'Share Tech Mono', monospace;
-  user-select: none;
-  -webkit-user-select: none;
-  overflow-x: hidden;
-  touch-action: pan-y;
+/* ── RESET ──────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{
+  height:100%;background:#0a0c09;color:#b8c4a8;
+  font-family:'Share Tech Mono',monospace;
+  user-select:none;-webkit-user-select:none;
+  overflow-x:hidden;
+  /* touch-action managed per-element: items get 'none', panels get 'pan-y' */
 }
 
-/* ─── DESIGN TOKENS ─────────────────────── */
-:root {
-  --cell: 52px;
-  --gap: 2px;
-  --radius: 0px;
-
-  --bg:        #0a0c09;
-  --surface:   #111309;
-  --surface2:  #161a10;
-  --border:    #232b1a;
-  --border2:   #2e3822;
-  --dim:       #3a4a2a;
-  --text:      #b8c4a8;
-  --text-dim:  #596650;
-  --text-hi:   #d4e8bc;
-  --accent:    #6dbb3a;
-  --accent-lo: #2a4015;
-  --accent-hi: #90e050;
-  --warn:      #d4851a;
-  --danger:    #c03a2a;
-  --rare:      #3a7acc;
-  --epic:      #8a4acc;
-  --legend:    #cc9a20;
-  --shadow:    rgba(0,0,0,0.7);
-
-  --cell-total: calc(var(--cell) + var(--gap));
-  --font-mono: 'Share Tech Mono', monospace;
-  --font-display: 'Russo One', sans-serif;
+/* ── TOKENS ──────────────────────────────── */
+:root{
+  --cell:52px;--gap:2px;
+  --bg:#0a0c09;--surf:#111309;--surf2:#161a10;
+  --bdr:#232b1a;--bdr2:#2e3822;--dim:#3a4a2a;
+  --txt:#b8c4a8;--txtd:#596650;--txth:#d4e8bc;
+  --acc:#6dbb3a;--acclo:#2a4015;--acchi:#90e050;
+  --warn:#d4851a;--danger:#c03a2a;
+  --rare:#3a7acc;--epic:#8a4acc;--leg:#cc9a20;
+  --font:'Share Tech Mono',monospace;
+  --disp:'Russo One',sans-serif;
 }
 
-/* ─── BACKGROUND GRID TEXTURE ───────────── */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0;
+/* ── BG TEXTURE ──────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:
-    linear-gradient(rgba(109,187,58,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(109,187,58,0.025) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
+    linear-gradient(rgba(109,187,58,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(109,187,58,.025) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);
 }
 
-/* ─── SCANLINE EFFECT ────────────────────── */
-body::after {
-  content: '';
-  position: fixed; inset: 0; z-index: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 3px,
-    rgba(0,0,0,0.08) 3px,
-    rgba(0,0,0,0.08) 4px
-  );
-  pointer-events: none;
+/* ── LAYOUT ──────────────────────────────── */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── HEADER ──────────────────────────────── */
+#hdr{
+  display:flex;align-items:stretch;
+  border-bottom:1px solid var(--bdr2);background:var(--surf);
+  flex-shrink:0;position:sticky;top:0;z-index:200;
+}
+#hdr::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.4;
+}
+#logo{padding:12px 20px;border-right:1px solid var(--bdr2);display:flex;flex-direction:column;justify-content:center}
+#logo h1{font-family:var(--disp);font-size:clamp(16px,3vw,24px);color:var(--acchi);letter-spacing:4px;line-height:1;text-shadow:0 0 20px rgba(109,187,58,.5)}
+#logo-sub{font-size:9px;color:var(--txtd);letter-spacing:3px;margin-top:3px}
+#hdr-stats{flex:1;display:flex;align-items:center;padding:0 16px;gap:24px;flex-wrap:wrap}
+.hst{display:flex;flex-direction:column;gap:2px}
+.hst-l{font-size:8px;letter-spacing:2px;color:var(--txtd);text-transform:uppercase}
+.hst-v{font-size:13px;color:var(--txth);font-family:var(--disp);letter-spacing:1px}
+.hst-v.a{color:var(--acc)}.hst-v.w{color:var(--warn)}
+#hdr-keys{
+  margin-left:auto;padding:0 16px;display:flex;align-items:center;gap:12px;
+  border-left:1px solid var(--bdr2);
+}
+.kbd{font-size:9px;color:var(--txtd);display:flex;align-items:center;gap:4px}
+.kbd span{
+  background:var(--surf2);border:1px solid var(--bdr2);padding:2px 5px;
+  font-size:9px;color:var(--acchi);letter-spacing:1px;
 }
 
-/* ─── LAYOUT ─────────────────────────────── */
-#app {
-  position: relative; z-index: 1;
-  display: flex; flex-direction: column;
-  min-height: 100vh;
+/* ── MAIN — columns set entirely by JS via applyCellSize() ── */
+/* CSS fallback uses minmax(0,1fr) so nothing overflows before JS runs */
+#main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);min-height:0;overflow:hidden}
+
+/* ── PANEL ───────────────────────────────── */
+.panel{display:flex;flex-direction:column;min-height:0;overflow:visible;border-right:1px solid var(--bdr2)}
+.panel:last-child{border-right:none}
+.ph{
+  padding:10px 14px 8px;border-bottom:1px solid var(--bdr);
+  background:var(--surf);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;
+}
+.pt{font-family:var(--disp);font-size:clamp(13px,2vw,16px);color:var(--txth);letter-spacing:3px;display:flex;align-items:center;gap:6px}
+.ptag{font-size:8px;color:var(--txtd);margin-top:3px;letter-spacing:2px;text-transform:uppercase}
+.pi{text-align:right;display:flex;flex-direction:column;gap:2px}
+.pi-r{font-size:9px;color:var(--txtd);display:flex;gap:5px;justify-content:flex-end;align-items:center}
+.pi-v{color:var(--txt)}.pi-v.g{color:var(--acc)}.pi-v.a{color:var(--warn)}
+.cap-wrap{margin-top:4px;width:70px;height:3px;background:var(--bdr2);position:relative;overflow:hidden}
+.cap-fill{height:100%;background:var(--acc);transition:width .3s ease;position:relative}
+.cap-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:var(--acchi);box-shadow:0 0 4px var(--acchi)}
+/* .pb defined in responsive section below */
+
+/* ── SORT BUTTON ─────────────────────────── */
+.sort-btn{
+  width:100%;margin-bottom:10px;padding:7px 0;
+  background:var(--surf2);border:1px solid var(--bdr2);
+  color:var(--acc);font-family:var(--font);font-size:10px;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;transition:background .1s,border-color .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.sort-btn:hover{background:var(--acclo);border-color:var(--acc)}
+.sort-btn:active{background:var(--acclo)}
+
+/* ── GRID ────────────────────────────────── */
+.inv-grid-outer{position:relative;flex-shrink:0}
+.inv-grid{
+  position:relative;background:var(--surf2);
+  border:1px solid var(--bdr2);
+  box-shadow:inset 0 0 40px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.015);
+}
+.cell{
+  position:absolute;background:#0c0e0a;
+  border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  transition:background 60ms,box-shadow 60ms;pointer-events:none;
+}
+.cell::after{content:'';position:absolute;bottom:2px;right:2px;width:2px;height:2px;background:rgba(255,255,255,.03);border-radius:50%}
+.cell.hv{background:rgba(109,187,58,.18)!important;border-color:var(--acc)!important;box-shadow:inset 0 0 6px rgba(109,187,58,.2)}
+.cell.hi{background:rgba(192,58,42,.2)!important;border-color:var(--danger)!important;box-shadow:inset 0 0 6px rgba(192,58,42,.2)}
+
+/* ── ITEMS ───────────────────────────────── */
+.item{position:absolute;cursor:grab;z-index:10;pointer-events:all;will-change:transform;touch-action:none;}
+.item.src{opacity:.2;pointer-events:none}
+.ib{
+  position:absolute;inset:2px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;overflow:hidden;transition:filter .1s;
+}
+.r-common   .ib{background:linear-gradient(160deg,#141810,#0e1009);border:1px solid #2a3020}
+.r-uncommon .ib{background:linear-gradient(160deg,#0e1a0c,#0a1408);border:1px solid #2a5020}
+.r-rare     .ib{background:linear-gradient(160deg,#0a1020,#060c18);border:1px solid #1a3860}
+.r-epic     .ib{background:linear-gradient(160deg,#140c20,#0c0818);border:1px solid #3a1870}
+.r-legendary .ib{background:linear-gradient(160deg,#1a1408,#100c04);border:1px solid #604010}
+.ib::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.r-common   .ib::before{background:#444}
+.r-uncommon .ib::before{background:var(--acc);box-shadow:0 0 6px var(--acc)}
+.r-rare     .ib::before{background:var(--rare);box-shadow:0 0 6px var(--rare)}
+.r-epic     .ib::before{background:var(--epic);box-shadow:0 0 8px var(--epic)}
+.r-legendary .ib::before{background:var(--leg);box-shadow:0 0 10px var(--leg);animation:lp 2s ease-in-out infinite}
+@keyframes lp{0%,100%{box-shadow:0 0 6px var(--leg);opacity:.8}50%{box-shadow:0 0 16px var(--leg);opacity:1}}
+.item:hover .ib{filter:brightness(1.3)}.item:hover{z-index:30}
+.item.rotated .ib{/* rotation handled via item dimensions */}
+.iico{font-size:clamp(13px,calc(var(--cell)*.38),20px);line-height:1;filter:drop-shadow(0 1px 4px rgba(0,0,0,.9));pointer-events:none}
+.ilbl{font-size:clamp(5px,calc(var(--cell)*.115),8px);color:rgba(180,200,160,.5);text-align:center;letter-spacing:.3px;padding:0 3px;line-height:1.2;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Stack indicator */
+.istack{position:absolute;bottom:2px;right:3px;font-size:8px;color:var(--warn);pointer-events:none;z-index:2;line-height:1}
+/* Rotation badge */
+.irot{position:absolute;top:2px;left:2px;font-size:7px;color:var(--txtd);pointer-events:none;z-index:2;background:rgba(0,0,0,.6);padding:1px 2px}
+
+/* Transfer hover button */
+.ixfer{
+  position:absolute;bottom:2px;right:2px;
+  width:18px;height:18px;background:rgba(10,12,9,.92);
+  border:1px solid var(--acclo);color:var(--acc);font-size:11px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .15s,background .1s;
+  z-index:20;pointer-events:none;font-family:var(--font);line-height:1;
+}
+.item:hover .ixfer{opacity:1;pointer-events:all}
+.ixfer:hover{background:var(--acclo);color:var(--acchi)}
+
+@keyframes land{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+.item.land{animation:land .2s cubic-bezier(.2,.8,.4,1) forwards}
+@keyframes fly{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.7) translateY(-8px)}}
+.item.fly{animation:fly .22s ease forwards;pointer-events:none}
+
+/* ══════════════════════════════════════════
+   PAPER DOLL
+══════════════════════════════════════════ */
+#doll-panel{
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 10px;gap:10px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--dim) transparent;
+}
+#doll-panel::-webkit-scrollbar{width:4px}
+#doll-panel::-webkit-scrollbar-thumb{background:var(--dim)}
+
+/* Character silhouette SVG container */
+#doll-figure{
+  position:relative;width:200px;height:320px;
+  flex-shrink:0;
+}
+#doll-svg{
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:.18;filter:drop-shadow(0 0 8px rgba(109,187,58,.3));
 }
 
-/* ─── HEADER ─────────────────────────────── */
-#header {
-  display: flex; align-items: stretch;
-  border-bottom: 1px solid var(--border2);
-  background: var(--surface);
-  flex-shrink: 0;
-  position: relative;
+/* Equipment slots overlaid on the figure */
+.eq-slot{
+  position:absolute;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(10,14,8,.85);
+  border:1px dashed var(--dim);
+  cursor:pointer;transition:border-color .15s,background .15s;
+  z-index:10;overflow:hidden;
+}
+.eq-slot:empty-hover,.eq-slot.drag-over{border-color:var(--acc);background:rgba(42,64,21,.4)}
+.eq-slot.filled{border-style:solid;border-color:var(--bdr2)}
+.eq-slot.drag-over{border-color:var(--acc)!important;background:rgba(42,64,21,.5)!important}
+.eq-slot.drag-reject{border-color:var(--danger)!important;background:rgba(192,58,42,.2)!important}
+
+/* Slot labels */
+.eq-slot::before{
+  content:attr(data-label);
+  position:absolute;bottom:2px;left:0;right:0;text-align:center;
+  font-size:7px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;
+  pointer-events:none;
+}
+.eq-slot.filled::before{opacity:0}
+
+/* Slot placeholder icon */
+.eq-slot::after{
+  content:attr(data-icon);
+  font-size:20px;opacity:.25;pointer-events:none;
+  filter:grayscale(.8);
+}
+.eq-slot.filled::after{display:none}
+
+/* Slotted item visual */
+.eq-item{
+  position:absolute;inset:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;pointer-events:none;overflow:hidden;
+}
+.eq-item-icon{font-size:clamp(14px,4vw,22px);line-height:1;filter:drop-shadow(0 1px 4px rgba(0,0,0,.9))}
+.eq-item-name{font-size:7px;color:rgba(180,200,160,.6);text-align:center;letter-spacing:.3px;padding:0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+/* Unequip button */
+.eq-unequip{
+  position:absolute;top:2px;right:2px;
+  width:14px;height:14px;background:rgba(192,58,42,.8);
+  border:1px solid var(--danger);color:#fff;
+  font-size:9px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .15s;z-index:30;pointer-events:none;
+}
+.eq-slot.filled:hover .eq-unequip{opacity:1;pointer-events:all}
+
+/* Rarity border on filled slot */
+.eq-slot.r-common{border-color:#444}
+.eq-slot.r-uncommon{border-color:var(--acc);box-shadow:inset 0 0 8px rgba(109,187,58,.15)}
+.eq-slot.r-rare{border-color:var(--rare);box-shadow:inset 0 0 8px rgba(58,122,204,.2)}
+.eq-slot.r-epic{border-color:var(--epic);box-shadow:inset 0 0 10px rgba(138,74,204,.25)}
+.eq-slot.r-legendary{border-color:var(--leg);box-shadow:inset 0 0 12px rgba(204,154,32,.3);animation:lp 2s ease-in-out infinite}
+
+/* Slot positions on the figure (200×320 canvas) */
+/* Helmet: top center */
+#slot-helmet  {width:60px;height:60px;top:2px;left:70px;border-radius:4px}
+/* Primary weapon: right side, tall */
+#slot-primary {width:52px;height:110px;top:100px;right:4px}
+/* Secondary weapon: below primary */
+#slot-secondary{width:52px;height:70px;top:220px;right:4px}
+/* Armor: chest center */
+#slot-armor   {width:76px;height:90px;top:80px;left:62px}
+/* Backpack: left side */
+#slot-backpack {width:52px;height:100px;top:100px;left:4px}
+/* Melee: below backpack */
+#slot-melee   {width:52px;height:60px;top:210px;left:4px}
+
+/* Stats below doll */
+#doll-stats{
+  width:100%;display:flex;flex-direction:column;gap:6px;
+  border-top:1px solid var(--bdr);padding-top:10px;
+}
+.ds-row{display:flex;justify-content:space-between;font-size:10px}
+.ds-label{color:var(--txtd)}.ds-val{color:var(--txth)}
+.ds-bar{width:100%;height:3px;background:var(--bdr2);margin-top:2px;overflow:hidden}
+.ds-bar-fill{height:100%;transition:width .4s ease}
+.ds-bar-fill.hp{background:var(--acc)}.ds-bar-fill.ar{background:var(--rare)}.ds-bar-fill.wt{background:var(--warn)}
+
+/* ── TOOLTIP ─────────────────────────────── */
+#tooltip{
+  position:fixed;z-index:9999;background:var(--surf);border:1px solid var(--bdr2);
+  border-top:2px solid;padding:11px 14px;pointer-events:none;display:none;
+  min-width:185px;max-width:220px;box-shadow:0 12px 40px rgba(0,0,0,.9);
+}
+#tooltip.tt-common{border-top-color:#555}
+#tooltip.tt-uncommon{border-top-color:var(--acc)}
+#tooltip.tt-rare{border-top-color:var(--rare)}
+#tooltip.tt-epic{border-top-color:var(--epic)}
+#tooltip.tt-legendary{border-top-color:var(--leg)}
+.tt-n{font-family:var(--disp);font-size:15px;letter-spacing:2px;color:var(--txth);margin-bottom:2px}
+.tt-r{font-size:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:7px}
+.tt-common .tt-r{color:#666}.tt-uncommon .tt-r{color:var(--acc)}.tt-rare .tt-r{color:var(--rare)}.tt-epic .tt-r{color:var(--epic)}.tt-legendary .tt-r{color:var(--leg)}
+.tt-d{font-size:10px;color:var(--txtd);line-height:1.6;margin-bottom:7px}
+.tt-s{display:flex;flex-direction:column;gap:2px}
+.tt-sv{display:flex;justify-content:space-between;font-size:10px}
+.tt-sk{color:var(--txtd)}.tt-sval{color:var(--acchi)}
+.tt-f{margin-top:7px;padding-top:6px;border-top:1px solid var(--bdr);font-size:9px;color:var(--txtd);display:flex;justify-content:space-between}
+.tt-hint{margin-top:6px;font-size:8px;color:var(--acc);letter-spacing:1px}
+
+/* ── CONTEXT MENU ────────────────────────── */
+#ctx{
+  position:fixed;z-index:9200;background:var(--surf);border:1px solid var(--bdr2);
+  box-shadow:0 8px 32px rgba(0,0,0,.9);display:none;overflow:hidden;min-width:175px;
+}
+.ctx-r{
+  padding:9px 14px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bdr);
+  color:var(--txt);transition:background .08s,color .08s;
+}
+.ctx-r:last-child{border-bottom:none}
+.ctx-r:hover{background:var(--acclo);color:var(--acchi)}
+.ctx-r.dng:hover{background:rgba(192,58,42,.15);color:#e05040}
+.ctx-ic{width:14px;text-align:center;font-size:12px}
+
+/* ── TOASTS ──────────────────────────────── */
+#toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:7px 18px;background:var(--surf);border:1px solid var(--bdr2);border-left:3px solid var(--acc);color:var(--txth);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.8);animation:tshow .2s ease,thide .25s ease 2s forwards}
+.toast.err{border-left-color:var(--danger)}.toast.ok{border-left-color:var(--acc)}.toast.inf{border-left-color:var(--rare)}
+@keyframes tshow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes thide{to{opacity:0;transform:translateY(-5px)}}
+
+/* ── DRAG GHOST ──────────────────────────── */
+#ghost{position:fixed;pointer-events:none;z-index:9990;display:none;transform:translate(-50%,-50%)}
+#ghost .ib{box-shadow:0 8px 32px rgba(0,0,0,.9),0 0 0 1px var(--acc)}
+#ghost .ixfer{display:none}
+
+/* ── PANEL body — vertical scroll only, JS sets --cell so no overflow ── */
+.pb{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;display:flex;flex-direction:column;align-items:center;gap:0;scrollbar-width:thin;scrollbar-color:var(--dim) transparent;touch-action:pan-y}
+.pb::-webkit-scrollbar{width:4px}.pb::-webkit-scrollbar-thumb{background:var(--dim)}
+
+/* ── RESPONSIVE: portrait / narrow ── */
+@media (max-width:820px),(orientation:portrait){
+  #main{grid-template-columns:1fr;grid-template-rows:auto auto auto;overflow-y:auto;overflow-x:hidden}
+  body{height:auto;overflow-y:auto}
+  .panel{overflow:visible;border-right:none;border-bottom:1px solid var(--bdr2)}
+  .pb{overflow:visible;touch-action:pan-y}
+  #hdr-keys{display:none}
+  #doll-panel{flex-direction:row;flex-wrap:wrap;justify-content:center;padding:10px}
 }
 
-#header::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.4;
-}
-
-#logo {
-  padding: 14px 24px;
-  border-right: 1px solid var(--border2);
-  display: flex; flex-direction: column; justify-content: center;
-}
-
-#logo h1 {
-  font-family: var(--font-display);
-  font-size: clamp(18px, 3vw, 26px);
-  color: var(--accent-hi);
-  letter-spacing: 4px;
-  line-height: 1;
-  text-shadow: 0 0 20px rgba(109,187,58,0.5);
-}
-
-#logo-sub {
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 3px;
-  margin-top: 4px;
-}
-
-#header-stats {
-  flex: 1;
-  display: flex; align-items: center;
-  padding: 0 20px; gap: 28px;
-}
-
-.hstat {
-  display: flex; flex-direction: column;
-  gap: 3px;
-}
-.hstat-label {
-  font-size: 8px; letter-spacing: 2px;
-  color: var(--text-dim); text-transform: uppercase;
-}
-.hstat-value {
-  font-size: 13px; color: var(--text-hi);
-  font-family: var(--font-display);
-  letter-spacing: 1px;
-}
-.hstat-value.accent { color: var(--accent); }
-.hstat-value.warn   { color: var(--warn); }
-
-#header-badge {
-  margin-left: auto;
-  padding: 0 20px;
-  display: flex; align-items: center;
-  border-left: 1px solid var(--border2);
-}
-#header-badge span {
-  font-size: 9px; letter-spacing: 2px;
-  color: var(--accent);
-  border: 1px solid var(--accent-lo);
-  padding: 4px 10px;
-  background: rgba(109,187,58,0.06);
-}
-
-/* ─── MAIN CONTENT ───────────────────────── */
-#main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 0;
-}
-
-/* ─── PANEL ──────────────────────────────── */
-.panel {
-  display: flex; flex-direction: column;
-  min-height: 0; overflow: hidden;
-  position: relative;
-}
-
-.panel-left { border-right: 1px solid var(--border2); }
-
-.panel-head {
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  display: flex; justify-content: space-between; align-items: flex-start;
-  flex-shrink: 0;
-}
-
-.panel-title {
-  font-family: var(--font-display);
-  font-size: clamp(14px, 2.5vw, 18px);
-  color: var(--text-hi);
-  letter-spacing: 3px;
-  display: flex; align-items: center; gap: 8px;
-}
-
-.panel-title-icon {
-  font-size: 16px;
-  filter: grayscale(0.3);
-}
-
-.panel-tag {
-  font-size: 8px; letter-spacing: 2px;
-  color: var(--text-dim); margin-top: 4px;
-  text-transform: uppercase;
-}
-
-.panel-info {
-  text-align: right; display: flex; flex-direction: column; gap: 3px;
-}
-
-.pinfo-row {
-  font-size: 10px; color: var(--text-dim);
-  display: flex; gap: 6px; justify-content: flex-end; align-items: center;
-}
-
-.pinfo-val { color: var(--text); }
-.pinfo-val.green { color: var(--accent); }
-.pinfo-val.amber { color: var(--warn); }
-
-/* Capacity bar */
-.cap-bar-wrap {
-  margin-top: 5px;
-  width: 80px; height: 3px;
-  background: var(--border2);
-  position: relative; overflow: hidden;
-}
-.cap-bar-fill {
-  height: 100%; background: var(--accent);
-  transition: width 0.3s ease;
-  position: relative;
-}
-.cap-bar-fill::after {
-  content: '';
-  position: absolute; right: 0; top: 0; bottom: 0;
-  width: 3px; background: var(--accent-hi);
-  box-shadow: 0 0 4px var(--accent-hi);
-}
-
-/* ─── PANEL BODY ────────────────────────── */
-.panel-body {
-  flex: 1; overflow-y: auto; overflow-x: auto;
-  padding: 16px;
-  display: flex; flex-direction: column;
-  align-items: center; gap: 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--dim) transparent;
-}
-.panel-body::-webkit-scrollbar { width: 4px; }
-.panel-body::-webkit-scrollbar-thumb { background: var(--dim); }
-
-/* ─── GRID ───────────────────────────────── */
-.inv-grid-outer {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.inv-grid {
-  position: relative;
-  background: var(--surface2);
-  /* Cells are rendered inside; grid size set by JS */
-  border: 1px solid var(--border2);
-  box-shadow:
-    inset 0 0 40px rgba(0,0,0,0.5),
-    inset 0 0 0 1px rgba(255,255,255,0.015);
-}
-
-/* ─── CELLS ──────────────────────────────── */
-.cell {
-  position: absolute;
-  background: #0c0e0a;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  transition: background 80ms, box-shadow 80ms;
-  pointer-events: none; /* hit testing done in JS via coordinates */
-}
-
-/* subtle inner dot pattern */
-.cell::after {
-  content: '';
-  position: absolute;
-  bottom: 2px; right: 2px;
-  width: 2px; height: 2px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 50%;
-}
-
-.cell.highlight-valid {
-  background: rgba(109,187,58,0.18) !important;
-  border-color: var(--accent) !important;
-  box-shadow: inset 0 0 6px rgba(109,187,58,0.2);
-}
-
-.cell.highlight-invalid {
-  background: rgba(192,58,42,0.2) !important;
-  border-color: var(--danger) !important;
-  box-shadow: inset 0 0 6px rgba(192,58,42,0.2);
-}
-
-/* ─── ITEMS ──────────────────────────────── */
-.item {
-  position: absolute;
-  cursor: grab;
-  z-index: 10;
-  pointer-events: all;
-  will-change: transform;
-}
-
-.item.dragging-source {
-  opacity: 0.22;
-  pointer-events: none;
-}
-
-.item-body {
-  position: absolute;
-  inset: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  transition: filter 0.1s;
-}
-
-/* Rarity fills */
-.r-common   .item-body { background: linear-gradient(160deg, #141810 0%, #0e1009 100%); border: 1px solid #2a3020; }
-.r-uncommon .item-body { background: linear-gradient(160deg, #0e1a0c 0%, #0a1408 100%); border: 1px solid #2a5020; }
-.r-rare     .item-body { background: linear-gradient(160deg, #0a1020 0%, #060c18 100%); border: 1px solid #1a3860; }
-.r-epic     .item-body { background: linear-gradient(160deg, #140c20 0%, #0c0818 100%); border: 1px solid #3a1870; }
-.r-legendary .item-body { background: linear-gradient(160deg, #1a1408 0%, #100c04 100%); border: 1px solid #604010; }
-
-/* Rarity left-edge accent bar */
-.item-body::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-}
-.r-common   .item-body::before { background: #444; }
-.r-uncommon .item-body::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-.r-rare     .item-body::before { background: var(--rare); box-shadow: 0 0 6px var(--rare); }
-.r-epic     .item-body::before { background: var(--epic); box-shadow: 0 0 8px var(--epic); }
-.r-legendary .item-body::before { background: var(--legend); box-shadow: 0 0 10px var(--legend); animation: leg-pulse 2s ease-in-out infinite; }
-
-@keyframes leg-pulse {
-  0%,100% { box-shadow: 0 0 6px var(--legend); opacity: 0.8; }
-  50%      { box-shadow: 0 0 16px var(--legend); opacity: 1; }
-}
-
-.item:hover .item-body { filter: brightness(1.3); }
-.item.touch-selected .item-body { filter: brightness(1.4); outline: 1px solid var(--accent); }
-
-/* Item icon */
-.item-icon {
-  font-size: clamp(14px, calc(var(--cell) * 0.38), 22px);
-  line-height: 1;
-  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.9));
-  pointer-events: none;
-}
-
-/* Item label */
-.item-label {
-  font-size: clamp(5px, calc(var(--cell) * 0.12), 8px);
-  color: rgba(180,200,160,0.5);
-  text-align: center;
-  letter-spacing: 0.3px;
-  padding: 0 3px;
-  line-height: 1.2;
-  pointer-events: none;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Stack count badge */
-.item-count {
-  position: absolute;
-  bottom: 3px; right: 4px;
-  font-size: 8px;
-  color: var(--warn);
-  font-family: var(--font-mono);
-  pointer-events: none;
-  z-index: 2;
-  line-height: 1;
-}
-
-/* Transfer button — appears on hover */
-.item-xfer {
-  position: absolute;
-  top: 2px; right: 2px;
-  width: 20px; height: 20px;
-  background: rgba(10,12,9,0.92);
-  border: 1px solid var(--accent-lo);
-  color: var(--accent);
-  font-size: 12px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.1s, border-color 0.1s;
-  z-index: 20;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  line-height: 1;
-}
-
-.item:hover .item-xfer,
-.item.touch-selected .item-xfer {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.item-xfer:hover {
-  background: var(--accent-lo);
-  border-color: var(--accent);
-  color: var(--accent-hi);
-}
-
-/* Rotate arrow for stash vs backpack */
-.xfer-to-stash::after    { content: '→'; }
-.xfer-to-backpack::after { content: '←'; }
-
-/* ─── DRAG GHOST ─────────────────────────── */
-#ghost {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  display: none;
-  transform: translate(-50%, -50%);
-}
-#ghost .item-body {
-  box-shadow: 0 8px 32px rgba(0,0,0,0.9), 0 0 0 1px var(--accent);
-}
-#ghost .item-xfer { display: none; }
-
-/* ─── TOOLTIP ────────────────────────────── */
-#tooltip {
-  position: fixed; z-index: 8888;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-top: 2px solid;
-  padding: 12px 14px;
-  pointer-events: none;
-  display: none;
-  min-width: 180px; max-width: 220px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.9);
-}
-#tooltip.tt-common   { border-top-color: #555; }
-#tooltip.tt-uncommon { border-top-color: var(--accent); }
-#tooltip.tt-rare     { border-top-color: var(--rare); }
-#tooltip.tt-epic     { border-top-color: var(--epic); }
-#tooltip.tt-legendary{ border-top-color: var(--legend); }
-
-.tt-name {
-  font-family: var(--font-display);
-  font-size: 15px; letter-spacing: 2px;
-  color: var(--text-hi); margin-bottom: 2px;
-}
-.tt-rarity {
-  font-size: 8px; letter-spacing: 3px;
-  text-transform: uppercase; margin-bottom: 8px;
-}
-.tt-common   .tt-rarity { color: #666; }
-.tt-uncommon .tt-rarity { color: var(--accent); }
-.tt-rare     .tt-rarity { color: var(--rare); }
-.tt-epic     .tt-rarity { color: var(--epic); }
-.tt-legendary .tt-rarity { color: var(--legend); }
-.tt-desc { font-size: 10px; color: var(--text-dim); line-height: 1.6; margin-bottom: 8px; }
-.tt-stats { display: flex; flex-direction: column; gap: 3px; }
-.tt-stat { display: flex; justify-content: space-between; font-size: 10px; }
-.tt-stat-key { color: var(--text-dim); }
-.tt-stat-val { color: var(--accent-hi); }
-.tt-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 9px; color: var(--text-dim); display: flex; justify-content: space-between; }
-
-/* ─── CONTEXT MENU ───────────────────────── */
-#ctx {
-  position: fixed; z-index: 9000;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.9);
-  display: none; overflow: hidden; min-width: 170px;
-}
-.ctx-row {
-  padding: 9px 16px;
-  font-size: 10px; letter-spacing: 1.5px;
-  text-transform: uppercase; cursor: pointer;
-  display: flex; align-items: center; gap: 10px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text); transition: background 0.08s, color 0.08s;
-}
-.ctx-row:last-child { border-bottom: none; }
-.ctx-row:hover { background: var(--accent-lo); color: var(--accent-hi); }
-.ctx-row.danger:hover { background: rgba(192,58,42,0.15); color: #e05040; }
-.ctx-icon { width: 14px; text-align: center; font-size: 13px; }
-
-/* ─── TOASTS ─────────────────────────────── */
-#toasts {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  z-index: 9999; display: flex; flex-direction: column; align-items: center;
-  gap: 6px; pointer-events: none;
-}
-.toast {
-  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-  padding: 7px 18px;
-  background: var(--surface); border: 1px solid var(--border2);
-  border-left: 3px solid var(--accent);
-  color: var(--text-hi); white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-  animation: toast-show 0.2s ease, toast-hide 0.25s ease 2s forwards;
-}
-.toast.err { border-left-color: var(--danger); }
-.toast.ok  { border-left-color: var(--accent); }
-.toast.info{ border-left-color: var(--rare); }
-@keyframes toast-show { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-@keyframes toast-hide { to   { opacity:0; transform:translateY(-5px); } }
-
-/* ─── ITEM LAND ANIMATION ────────────────── */
-@keyframes item-land {
-  0%   { transform: scale(0.82); opacity: 0; }
-  60%  { transform: scale(1.04); }
-  100% { transform: scale(1);    opacity: 1; }
-}
-.item.land { animation: item-land 0.22s cubic-bezier(0.2,0.8,0.4,1) forwards; }
-
-/* ─── TRANSFER FLY OUT ───────────────────── */
-@keyframes item-fly {
-  0%   { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.7) translateY(-10px); }
-}
-.item.flying { animation: item-fly 0.25s ease forwards; pointer-events: none; }
-
-/* ─── RESPONSIVE ─────────────────────────── */
-
-/* Landscape small (phones in landscape) */
-@media (orientation: landscape) and (max-height: 480px) {
-  :root { --cell: 38px; }
-  #logo h1 { font-size: 16px; }
-  .panel-head { padding: 8px 12px 6px; }
-  .panel-body { padding: 10px; }
-}
-
-/* Portrait mobile */
-@media (max-width: 680px), (orientation: portrait) and (max-width: 900px) {
-  :root { --cell: 44px; }
-
-  #main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    overflow-y: auto; overflow-x: hidden;
-    /* allow scrolling through both panels */
-  }
-
-  #main { flex: none; }
-  body { height: auto; overflow-y: auto; }
-
-  .panel-left { border-right: none; border-bottom: 1px solid var(--border2); }
-
-  .panel { overflow: visible; }
-  .panel-body { overflow: visible; }
-
-  #header-stats { gap: 16px; }
-  #header-badge { display: none; }
-}
-
-/* Very small portrait */
-@media (max-width: 420px) {
-  :root { --cell: 40px; }
-  #header-stats .hstat:nth-child(n+3) { display: none; }
-}
-
-/* Tablets — comfortable */
-@media (min-width: 1200px) {
-  :root { --cell: 56px; }
-}
-
-/* ─── SCROLLBAR ──────────────────────────── */
-html { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--dim); }
+html{scrollbar-width:thin;scrollbar-color:var(--dim) transparent}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--dim)}
 </style>
 </head>
-
 <body>
 <div id="app">
 
-  <header id="header">
-    <div id="logo">
-      <h1>DEAD DROP</h1>
-      <div id="logo-sub">FIELD INVENTORY SYSTEM</div>
+  <header id="hdr">
+    <div id="logo"><h1>DEAD DROP</h1><div id="logo-sub">FIELD INVENTORY</div></div>
+    <div id="hdr-stats">
+      <div class="hst"><div class="hst-l">Carry Weight</div><div class="hst-v a" id="hs-wt">0.0 kg</div></div>
+      <div class="hst"><div class="hst-l">Pack Load</div><div class="hst-v" id="hs-bp">0/0</div></div>
+      <div class="hst"><div class="hst-l">Stash Value</div><div class="hst-v" id="hs-val">₽0</div></div>
+      <div class="hst"><div class="hst-l">Armor Class</div><div class="hst-v w" id="hs-ac">—</div></div>
     </div>
-    <div id="header-stats">
-      <div class="hstat">
-        <div class="hstat-label">Carry Weight</div>
-        <div class="hstat-value accent" id="hs-weight">0.0 kg</div>
-      </div>
-      <div class="hstat">
-        <div class="hstat-label">Pack Load</div>
-        <div class="hstat-value" id="hs-bp-cap">0 / 0</div>
-      </div>
-      <div class="hstat">
-        <div class="hstat-label">Stash Value</div>
-        <div class="hstat-value" id="hs-value">₽ 0</div>
-      </div>
-      <div class="hstat">
-        <div class="hstat-label">Items Stashed</div>
-        <div class="hstat-value" id="hs-count">0</div>
-      </div>
+    <div id="hdr-keys">
+      <div class="kbd"><span>R</span> Rotate</div>
+      <div class="kbd"><span>F</span> Quick Transfer</div>
+      <div class="kbd"><span>Drag→Zone</span> Auto-fit</div>
+      <div class="kbd"><span>RMB</span> Menu</div>
     </div>
-    <div id="header-badge"><span>SECTOR 7 — BUNKER</span></div>
   </header>
 
   <div id="main">
 
-    <!-- ── BACKPACK PANEL ── -->
-    <div class="panel panel-left" id="panel-bp">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title"><span class="panel-title-icon">🎒</span> BACKPACK</div>
-          <div class="panel-tag">Field carry · lost on death</div>
+    <!-- ── PAPER DOLL PANEL ── -->
+    <div class="panel" id="panel-doll">
+      <div class="ph">
+        <div><div class="pt">⚔ LOADOUT</div><div class="ptag">Equipped gear · drag items here</div></div>
+      </div>
+      <div id="doll-panel">
+        <div id="doll-figure">
+          <!-- Human silhouette SVG -->
+          <svg id="doll-svg" viewBox="0 0 200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="100" cy="28" rx="22" ry="25" fill="#6dbb3a"/>
+            <!-- Neck -->
+            <rect x="92" y="50" width="16" height="12" fill="#6dbb3a"/>
+            <!-- Torso -->
+            <rect x="62" y="62" width="76" height="95" rx="4" fill="#6dbb3a"/>
+            <!-- Left upper arm -->
+            <rect x="34" y="64" width="26" height="18" rx="4" fill="#6dbb3a" transform="rotate(8,34,64)"/>
+            <!-- Left forearm -->
+            <rect x="18" y="86" width="24" height="16" rx="3" fill="#6dbb3a" transform="rotate(20,18,86)"/>
+            <!-- Right upper arm -->
+            <rect x="140" y="64" width="26" height="18" rx="4" fill="#6dbb3a" transform="rotate(-8,166,64)"/>
+            <!-- Right forearm -->
+            <rect x="158" y="86" width="24" height="16" rx="3" fill="#6dbb3a" transform="rotate(-20,182,86)"/>
+            <!-- Left thigh -->
+            <rect x="63" y="157" width="32" height="70" rx="4" fill="#6dbb3a"/>
+            <!-- Right thigh -->
+            <rect x="105" y="157" width="32" height="70" rx="4" fill="#6dbb3a"/>
+            <!-- Left shin -->
+            <rect x="65" y="227" width="28" height="75" rx="3" fill="#6dbb3a"/>
+            <!-- Right shin -->
+            <rect x="107" y="227" width="28" height="75" rx="3" fill="#6dbb3a"/>
+          </svg>
+          <!-- Equipment slots -->
+          <div class="eq-slot" id="slot-helmet"   data-slot="helmet"    data-accepts="helmet"             data-label="Helmet"    data-icon="⛑️"></div>
+          <div class="eq-slot" id="slot-armor"    data-slot="armor"     data-accepts="armor"              data-label="Armor"     data-icon="🦺"></div>
+          <div class="eq-slot" id="slot-primary"  data-slot="primary"   data-accepts="rifle,shotgun"      data-label="Primary"   data-icon="🔫"></div>
+          <div class="eq-slot" id="slot-secondary" data-slot="secondary" data-accepts="pistol,pistol_b"   data-label="Sidearm"   data-icon="🔫"></div>
+          <div class="eq-slot" id="slot-backpack" data-slot="backpack"  data-accepts="backpack2"           data-label="Pack"      data-icon="🎒"></div>
+          <div class="eq-slot" id="slot-melee"    data-slot="melee"     data-accepts="knife"               data-label="Melee"     data-icon="🔪"></div>
         </div>
-        <div class="panel-info">
-          <div class="pinfo-row">
-            <span>Slots</span>
-            <span class="pinfo-val green" id="bp-used">0</span>
-            <span class="pinfo-val">/</span>
-            <span class="pinfo-val" id="bp-total">0</span>
-          </div>
-          <div class="pinfo-row">
-            <span>Weight</span>
-            <span class="pinfo-val amber" id="bp-weight">0.0 kg</span>
-          </div>
-          <div class="cap-bar-wrap">
-            <div class="cap-bar-fill" id="bp-bar" style="width:0%"></div>
-          </div>
+        <!-- Character stats derived from equipped gear -->
+        <div id="doll-stats">
+          <div class="ds-row"><span class="ds-label">PROTECTION</span><span class="ds-val" id="ds-prot">—</span></div>
+          <div class="ds-bar"><div class="ds-bar-fill ar" id="ds-prot-bar" style="width:0%"></div></div>
+          <div class="ds-row" style="margin-top:4px"><span class="ds-label">CARRY WEIGHT</span><span class="ds-val" id="ds-wt">0.0 kg</span></div>
+          <div class="ds-bar"><div class="ds-bar-fill wt" id="ds-wt-bar" style="width:0%"></div></div>
+          <div class="ds-row" style="margin-top:4px"><span class="ds-label">FIREPOWER</span><span class="ds-val" id="ds-fp">—</span></div>
+          <div class="ds-bar"><div class="ds-bar-fill hp" id="ds-fp-bar" style="width:0%"></div></div>
         </div>
       </div>
-      <div class="panel-body" id="body-bp">
-        <div class="inv-grid-outer">
-          <div class="inv-grid" id="grid-bp"></div>
+    </div>
+
+    <!-- ── BACKPACK PANEL ── -->
+    <div class="panel" id="panel-bp">
+      <div class="ph">
+        <div><div class="pt">🎒 BACKPACK</div><div class="ptag">Field carry · lost on death</div></div>
+        <div class="pi">
+          <div class="pi-r">Slots <span class="pi-v g" id="bp-used">0</span>/<span class="pi-v" id="bp-tot">0</span></div>
+          <div class="pi-r">Weight <span class="pi-v a" id="bp-wt">0.0 kg</span></div>
+          <div class="cap-wrap"><div class="cap-fill" id="bp-bar" style="width:0%"></div></div>
         </div>
+      </div>
+      <div class="pb" id="pb-bp">
+        <button class="sort-btn" id="sort-bp" onclick="sortGrid('bp')">⊞ AUTO-SORT BACKPACK</button>
+        <div class="inv-grid-outer"><div class="inv-grid" id="grid-bp"></div></div>
       </div>
     </div>
 
     <!-- ── STASH PANEL ── -->
-    <div class="panel panel-right" id="panel-st">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title"><span class="panel-title-icon">🏛</span> STASH</div>
-          <div class="panel-tag">Bunker storage · persistent</div>
-        </div>
-        <div class="panel-info">
-          <div class="pinfo-row">
-            <span>Slots</span>
-            <span class="pinfo-val green" id="st-used">0</span>
-            <span class="pinfo-val">/</span>
-            <span class="pinfo-val" id="st-total">0</span>
-          </div>
-          <div class="pinfo-row">
-            <span>Value</span>
-            <span class="pinfo-val amber" id="st-value">₽ 0</span>
-          </div>
-          <div class="cap-bar-wrap">
-            <div class="cap-bar-fill" id="st-bar" style="width:0%"></div>
-          </div>
+    <div class="panel" id="panel-st">
+      <div class="ph">
+        <div><div class="pt">🏛 STASH</div><div class="ptag">Bunker storage · persistent</div></div>
+        <div class="pi">
+          <div class="pi-r">Slots <span class="pi-v g" id="st-used">0</span>/<span class="pi-v" id="st-tot">0</span></div>
+          <div class="pi-r">Value <span class="pi-v a" id="st-val">₽0</span></div>
+          <div class="cap-wrap"><div class="cap-fill" id="st-bar" style="width:0%"></div></div>
         </div>
       </div>
-      <div class="panel-body" id="body-st">
-        <div class="inv-grid-outer">
-          <div class="inv-grid" id="grid-st"></div>
-        </div>
+      <div class="pb" id="pb-st">
+        <button class="sort-btn" id="sort-st" onclick="sortGrid('st')">⊞ AUTO-SORT STASH</button>
+        <div class="inv-grid-outer"><div class="inv-grid" id="grid-st"></div></div>
       </div>
     </div>
 
-  </div><!-- /#main -->
-</div><!-- /#app -->
+  </div>
+</div>
 
 <div id="ghost"></div>
 <div id="tooltip"></div>
@@ -680,728 +452,1097 @@ html { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
 
 <script>
 'use strict';
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    ITEM DEFINITIONS
-══════════════════════════════════════════════════════════ */
+════════════════════════════════════════════════════════ */
 const DEFS = {
-  pistol:     { name:'P-9 Compact',     icon:'🔫', rarity:'common',    w:2, h:1, weight:0.7, value:500,  desc:'Reliable 9mm sidearm.',              stats:{ Damage:'25', Ammo:'9mm', RPM:'400' } },
-  pistol_b:   { name:'Makarov PM',      icon:'🔫', rarity:'uncommon',  w:2, h:1, weight:0.8, value:800,  desc:'Classic Russian military sidearm.',   stats:{ Damage:'28', Ammo:'9mm', RPM:'350' } },
-  rifle:      { name:'AK-74U',          icon:'🔫', rarity:'rare',      w:4, h:2, weight:3.4, value:2500, desc:'Short-barrel assault rifle.',          stats:{ Damage:'45', Ammo:'5.45', RPM:'650' } },
-  rifle_b:    { name:'M4A1',            icon:'🔫', rarity:'epic',      w:4, h:2, weight:3.2, value:4200, desc:'Mil-spec carbine with rail system.',   stats:{ Damage:'42', Ammo:'5.56', RPM:'800' } },
-  shotgun:    { name:'Mossberg 500',    icon:'🔫', rarity:'uncommon',  w:3, h:1, weight:3.1, value:1200, desc:'Pump-action. Devastating up close.',   stats:{ Damage:'18×8', Ammo:'12ga', RPM:'60' } },
-  ammo_9:     { name:'9mm FMJ ×30',     icon:'🟡', rarity:'common',    w:1, h:1, weight:0.3, value:50,   desc:'Standard pistol rounds.',             stats:{ Pen:'12', Dmg:'25' }, count:30 },
-  ammo_545:   { name:'5.45 BP ×30',     icon:'🟠', rarity:'uncommon',  w:1, h:1, weight:0.4, value:150,  desc:'Armor-piercing rifle rounds.',        stats:{ Pen:'48', Dmg:'40' }, count:30 },
-  ammo_556:   { name:'5.56 M855 ×30',   icon:'🟠', rarity:'rare',      w:1, h:1, weight:0.4, value:200,  desc:'NATO standard rifle ammunition.',     stats:{ Pen:'52', Dmg:'38' }, count:30 },
-  ammo_12ga:  { name:'12ga Slug ×8',    icon:'🟤', rarity:'common',    w:1, h:1, weight:0.5, value:80,   desc:'Solid slug rounds.',                  stats:{ Pen:'25', Dmg:'140' }, count:8 },
-  medkit:     { name:'AI-2 Medkit',     icon:'💊', rarity:'common',    w:1, h:1, weight:0.2, value:200,  desc:'Basic field medkit. +40 HP.',         stats:{ Heal:'+40', Time:'4s' } },
-  salewa:     { name:'Salewa IFAK',     icon:'🩹', rarity:'uncommon',  w:2, h:1, weight:0.4, value:800,  desc:'Advanced trauma kit. +100 HP.',       stats:{ Heal:'+100', Time:'6s' } },
-  surv12:     { name:'Survival Kit',    icon:'🧰', rarity:'rare',      w:2, h:2, weight:1.2, value:1500, desc:'Multi-use field survival kit.',        stats:{ Heal:'+220', Uses:'3' } },
-  armor:      { name:'PACA Vest',       icon:'🦺', rarity:'common',    w:2, h:2, weight:4.0, value:1200, desc:'Soft ballistic vest. Class 2.',        stats:{ Class:'2', Dur:'70' } },
-  armor_b:    { name:'Kirasa-N Plate',  icon:'🦺', rarity:'rare',      w:2, h:3, weight:6.5, value:3800, desc:'Hard plate carrier. Class 4.',         stats:{ Class:'4', Dur:'120' } },
-  helmet:     { name:'SSH-68',          icon:'⛑️', rarity:'common',    w:2, h:2, weight:1.4, value:800,  desc:'Steel helmet. Better than nothing.',   stats:{ Class:'2', Cov:'45%' } },
-  helmet_b:   { name:'TC-800',          icon:'⛑️', rarity:'epic',      w:2, h:2, weight:1.8, value:4500, desc:'Modern FAST helmet with face shield.', stats:{ Class:'5', Cov:'80%' } },
-  grenade:    { name:'F-1 Frag',        icon:'💣', rarity:'uncommon',  w:1, h:1, weight:0.6, value:600,  desc:'Fragmentation grenade. 5m kill radius.',stats:{ Dmg:'740', Rad:'5m' } },
-  smoke:      { name:'Smoke Grenade',   icon:'💨', rarity:'common',    w:1, h:1, weight:0.5, value:300,  desc:'Tactical smoke. 20s duration.',       stats:{ Dur:'20s', Rad:'8m' } },
-  knife:      { name:'Morakniv Blade',  icon:'🔪', rarity:'common',    w:1, h:2, weight:0.3, value:300,  desc:'Silent takedown tool.',               stats:{ Dmg:'55', Speed:'1.5s' } },
-  watch:      { name:'Gold Watch',      icon:'⌚', rarity:'legendary', w:1, h:1, weight:0.1, value:5000, desc:'Pre-war antique. Extraordinarily rare.',stats:{ Value:'₽5000', Type:'Barter' } },
-  dogtag:     { name:'Dog Tag',         icon:'🏷️', rarity:'rare',      w:1, h:1, weight:0.1, value:2000, desc:'Fallen operator. Quest item.',         stats:{ Value:'₽2000', Type:'Quest' } },
-  fuel:       { name:'Fuel Canister',   icon:'⛽', rarity:'uncommon',  w:1, h:2, weight:2.0, value:450,  desc:'Used for generator fuel.',             stats:{ Type:'Resource', Uses:'3' } },
-  battery:    { name:'Battery Pack',    icon:'🔋', rarity:'common',    w:1, h:1, weight:0.4, value:200,  desc:'Powers various devices.',              stats:{ Type:'Resource', Charge:'100%' } },
-  food:       { name:'Army Rations',    icon:'🥫', rarity:'common',    w:1, h:1, weight:0.8, value:120,  desc:'High-cal field rations.',              stats:{ Energy:'+35', Hydration:'+15' } },
-  backpack2:  { name:'MOLLE Pack',      icon:'🎒', rarity:'rare',      w:2, h:3, weight:2.1, value:900,  desc:'Large-frame tactical backpack.',       stats:{ Slots:'+25', Weight:'2.1 kg' } },
-  scope:      { name:'PSO-1 Scope',     icon:'🔭', rarity:'uncommon',  w:2, h:1, weight:0.6, value:700,  desc:'4x magnification rifle scope.',       stats:{ Zoom:'4×', Compatible:'AK/SVD' } },
-  suppressor: { name:'Silencer 9mm',    icon:'🔩', rarity:'rare',      w:2, h:1, weight:0.3, value:1100, desc:'Threaded suppressor. Reduces noise.',  stats:{ Noise:'-40dB', Compatible:'9mm' } },
+  // RIFLES
+  rifle:      {name:'AK-74U',         icon:'🔫',rarity:'rare',     cat:'rifle',    w:4,h:2,weight:3.4,value:2500,desc:'Short-barrel assault rifle. High stopping power.',     stats:{Damage:'45',Ammo:'5.45mm',RPM:'650',Firepower:'75'}},
+  rifle_b:    {name:'M4A1',           icon:'🔫',rarity:'epic',     cat:'rifle',    w:4,h:2,weight:3.2,value:4200,desc:'Mil-spec carbine with Picatinny rail system.',          stats:{Damage:'42',Ammo:'5.56mm',RPM:'800',Firepower:'82'}},
+  shotgun:    {name:'Mossberg 500',   icon:'🔫',rarity:'uncommon', cat:'shotgun',  w:3,h:1,weight:3.1,value:1200,desc:'Pump-action. Devastating at close range.',             stats:{Damage:'18×8',Ammo:'12ga',RPM:'60',Firepower:'60'}},
+  // PISTOLS
+  pistol:     {name:'P-9 Compact',    icon:'🔫',rarity:'common',   cat:'pistol',   w:2,h:1,weight:0.7,value:500, desc:'Reliable 9mm sidearm. Worn but functional.',          stats:{Damage:'25',Ammo:'9mm',RPM:'400',Firepower:'30'}},
+  pistol_b:   {name:'Makarov PM',     icon:'🔫',rarity:'uncommon', cat:'pistol_b', w:2,h:1,weight:0.8,value:800, desc:'Classic Russian military sidearm.',                   stats:{Damage:'28',Ammo:'9mm',RPM:'350',Firepower:'35'}},
+  // AMMO — stackable
+  ammo_9:     {name:'9mm FMJ',        icon:'🟡',rarity:'common',   cat:'ammo',     w:1,h:1,weight:0.1,value:50,  desc:'Standard 9mm rounds.',                               stats:{Pen:'12',Dmg:'25'},stackSize:30,count:30},
+  ammo_545:   {name:'5.45 BP',        icon:'🟠',rarity:'uncommon', cat:'ammo',     w:1,h:1,weight:0.1,value:150, desc:'Armor-piercing rifle rounds.',                        stats:{Pen:'48',Dmg:'40'},stackSize:30,count:30},
+  ammo_556:   {name:'5.56 M855',      icon:'🟠',rarity:'rare',     cat:'ammo',     w:1,h:1,weight:0.1,value:200, desc:'NATO standard rifle ammunition.',                     stats:{Pen:'52',Dmg:'38'},stackSize:30,count:30},
+  ammo_12ga:  {name:'12ga Slug',      icon:'🟤',rarity:'common',   cat:'ammo',     w:1,h:1,weight:0.2,value:80,  desc:'Solid slug rounds.',                                 stats:{Pen:'25',Dmg:'140'},stackSize:8,count:8},
+  // MEDICAL — stackable
+  medkit:     {name:'AI-2 Medkit',    icon:'💊',rarity:'common',   cat:'medical',  w:1,h:1,weight:0.2,value:200, desc:'Basic field medkit. Heals minor wounds.',             stats:{Heal:'+40',Time:'4s'},stackSize:3,count:1},
+  salewa:     {name:'Salewa IFAK',    icon:'🩹',rarity:'uncommon', cat:'medical',  w:2,h:1,weight:0.4,value:800, desc:'Advanced trauma kit. Fast bleed stop.',               stats:{Heal:'+100',Time:'6s'},stackSize:2,count:1},
+  surv12:     {name:'Survival Kit',   icon:'🧰',rarity:'rare',     cat:'medical',  w:2,h:2,weight:1.2,value:1500,desc:'Multi-use field survival kit. 3 charges.',            stats:{Heal:'+220',Uses:'3'},stackSize:1,count:1},
+  // ARMOR
+  armor:      {name:'PACA Vest',      icon:'🦺',rarity:'common',   cat:'armor',    w:2,h:2,weight:4.0,value:1200,desc:'Soft ballistic vest. Class II protection.',           stats:{Class:'2',Durability:'70',ArmorClass:'2'}},
+  armor_b:    {name:'Kirasa-N Plate', icon:'🦺',rarity:'rare',     cat:'armor',    w:2,h:3,weight:6.5,value:3800,desc:'Hard plate carrier. Class IV rated.',                 stats:{Class:'4',Durability:'120',ArmorClass:'4'}},
+  // HELMETS
+  helmet:     {name:'SSH-68',         icon:'⛑️',rarity:'common',  cat:'helmet',   w:2,h:2,weight:1.4,value:800, desc:'Soviet steel helmet. Better than nothing.',           stats:{Class:'2',Coverage:'45%',ArmorClass:'2'}},
+  helmet_b:   {name:'TC-800',         icon:'⛑️',rarity:'epic',    cat:'helmet',   w:2,h:2,weight:1.8,value:4500,desc:'Modern FAST helmet with full face shield.',           stats:{Class:'5',Coverage:'80%',ArmorClass:'5'}},
+  // THROWABLES
+  grenade:    {name:'F-1 Frag',       icon:'💣',rarity:'uncommon', cat:'throwable',w:1,h:1,weight:0.6,value:600, desc:'Fragmentation grenade. 5m lethal radius.',           stats:{Dmg:'740',Radius:'5m'},stackSize:3,count:1},
+  smoke:      {name:'Smoke Grenade',  icon:'💨',rarity:'common',   cat:'throwable',w:1,h:1,weight:0.5,value:300, desc:'Tactical smoke screen. 20s duration.',               stats:{Duration:'20s',Radius:'8m'},stackSize:3,count:1},
+  // MELEE
+  knife:      {name:'Morakniv',       icon:'🔪',rarity:'common',   cat:'knife',    w:1,h:2,weight:0.3,value:300, desc:'Silent takedown tool. Always useful.',               stats:{Dmg:'55',Speed:'1.5s'}},
+  // VALUABLES
+  watch:      {name:'Gold Watch',     icon:'⌚',rarity:'legendary',cat:'valuable', w:1,h:1,weight:0.1,value:5000,desc:'Pre-war antique. Extraordinarily valuable.',          stats:{Value:'₽5000',Type:'Barter'}},
+  dogtag:     {name:'Dog Tag',        icon:'🏷️',rarity:'rare',    cat:'valuable', w:1,h:1,weight:0.1,value:2000,desc:'Fallen operator. Quest item.',                        stats:{Value:'₽2000',Type:'Quest'}},
+  // SUPPLIES — stackable
+  food:       {name:'Army Rations',   icon:'🥫',rarity:'common',   cat:'supply',   w:1,h:1,weight:0.8,value:120, desc:'High-calorie field rations.',                        stats:{Energy:'+35',Hydration:'+15'},stackSize:5,count:1},
+  battery:    {name:'Battery Pack',   icon:'🔋',rarity:'common',   cat:'supply',   w:1,h:1,weight:0.4,value:200, desc:'Powers various field devices.',                      stats:{Charge:'100%',Type:'Resource'},stackSize:4,count:1},
+  fuel:       {name:'Fuel Canister',  icon:'⛽',rarity:'uncommon', cat:'supply',   w:1,h:2,weight:2.0,value:450, desc:'Generator fuel. 3 uses.',                            stats:{Uses:'3',Type:'Resource'}},
+  // BAGS
+  backpack2:  {name:'MOLLE Pack',     icon:'🎒',rarity:'rare',     cat:'backpack2',w:2,h:3,weight:2.1,value:900, desc:'Large-frame tactical backpack. Extra carry capacity.',stats:{Slots:'+25',Weight:'2.1 kg'}},
+  // ATTACHMENTS
+  scope:      {name:'PSO-1 Scope',    icon:'🔭',rarity:'uncommon', cat:'attach',   w:2,h:1,weight:0.6,value:700, desc:'4× magnification rifle scope.',                     stats:{Zoom:'4×',Compatible:'AK/SVD'}},
+  suppressor: {name:'Silencer 9mm',   icon:'🔩',rarity:'rare',     cat:'attach',   w:2,h:1,weight:0.3,value:1100,desc:'Threaded suppressor. Reduces noise by 40dB.',        stats:{Noise:'-40dB',Compatible:'9mm'}},
 };
 
-const RARITIES = ['common','uncommon','rare','epic','legendary'];
+/* Category sort order for auto-sort */
+const CAT_ORDER = {rifle:0,shotgun:1,pistol:2,pistol_b:3,ammo:4,helmet:5,armor:6,backpack2:7,medical:8,throwable:9,knife:10,attach:11,supply:12,valuable:13};
 
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
+   EQUIPMENT SLOT DEFINITIONS
+════════════════════════════════════════════════════════ */
+// Which item categories are accepted by each slot
+const SLOT_ACCEPTS = {
+  helmet:    ['helmet'],
+  armor:     ['armor'],
+  primary:   ['rifle','shotgun'],
+  secondary: ['pistol','pistol_b'],
+  backpack:  ['backpack2'],
+  melee:     ['knife'],
+};
+
+/* ════════════════════════════════════════════════════════
    GRID CONFIG
-══════════════════════════════════════════════════════════ */
-const GRID_CFG = {
-  bp: { cols: 5,  rows: 6,  el: null, opposite: 'st', label: 'backpack' },
-  st: { cols: 10, rows: 12, el: null, opposite: 'bp', label: 'stash'    },
+════════════════════════════════════════════════════════ */
+const GCFG = {
+  bp:{cols:5, rows:6, opposite:'st', label:'Backpack'},
+  st:{cols:10,rows:12,opposite:'bp', label:'Stash'},
 };
 
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    STATE
-══════════════════════════════════════════════════════════ */
+════════════════════════════════════════════════════════ */
 let _uid = 1;
 const newUid = () => 'u' + (_uid++);
 
-// items[gridId] = array of { uid, defId, col, row }
-const state = {
-  items: { bp: [], st: [] },
+const S = {
+  items:    {bp:[], st:[]},
+  equipped: {helmet:null,armor:null,primary:null,secondary:null,backpack:null,melee:null},
+  // equipped value: {uid, defId, origGrid}
 };
 
-const SAVE_KEY = 'deadDrop_v4';
+// Keyboard hover tracking
+let hoveredItem = null; // {uid, gridId}
 
-/* ══════════════════════════════════════════════════════════
+const SAVE_KEY = 'deadDrop_v5';
+
+/* ════════════════════════════════════════════════════════
    PERSISTENCE
-══════════════════════════════════════════════════════════ */
-function saveState() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ items: state.items.st, uid: _uid }));
-  } catch(e) {}
+════════════════════════════════════════════════════════ */
+function saveAll(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify({items:S.items.st, eq:S.equipped, uid:_uid})); }catch(e){}
+}
+function loadAll(){
+  try{
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY)||'{}');
+    if(d.uid) _uid = d.uid;
+    if(d.items) S.items.st = d.items;
+    if(d.eq) S.equipped = {...S.equipped,...d.eq};
+    return !!d.items;
+  }catch(e){ return false; }
 }
 
-function loadSaved() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const d = JSON.parse(raw);
-    if (d.uid) _uid = d.uid;
-    if (d.items) { state.items.st = d.items; return true; }
-  } catch(e) {}
-  return false;
+/* ════════════════════════════════════════════════════════
+   DYNAMIC CELL SIZE — fits everything in viewport with no overflow
+════════════════════════════════════════════════════════ */
+const GAP = 2;
+const DOLL_COLS = 5;  // bp cols
+const STASH_COLS = 10; // st cols
+const STASH_ROWS = 12;
+const BP_ROWS    = 6;
+const PAD = 20; // panel padding left+right combined
+const BTN_H = 44; // sort button height + margin
+
+function isPortrait(){
+  return window.innerWidth <= 820 || window.innerWidth < window.innerHeight;
 }
 
-/* ══════════════════════════════════════════════════════════
-   OCCUPANCY MAP
-══════════════════════════════════════════════════════════ */
-function buildOccMap(gridId, excludeUid = null) {
-  const cfg = GRID_CFG[gridId];
-  const map = Array.from({ length: cfg.rows }, () => new Array(cfg.cols).fill(null));
-  for (const item of state.items[gridId]) {
-    if (item.uid === excludeUid) continue;
-    const def = DEFS[item.defId];
-    for (let r = 0; r < def.h; r++)
-      for (let c = 0; c < def.w; c++) {
-        const rr = item.row + r, cc = item.col + c;
-        if (rr < cfg.rows && cc < cfg.cols) map[rr][cc] = item.uid;
-      }
+function applyCellSize(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const hdrH = (document.getElementById('hdr')?.offsetHeight) || 48;
+  const phH  = (document.querySelector('.ph')?.offsetHeight) || 52;
+  const availH = vh - hdrH - phH - BTN_H - PAD;
+
+  if(isPortrait()){
+    // Stacked: stash is widest (10 cols), must fit full viewport width
+    const fromW = Math.floor((vw - PAD - GAP*(STASH_COLS-1)) / STASH_COLS);
+    const fromH = Math.floor((availH - GAP*(STASH_ROWS-1)) / STASH_ROWS);
+    const cell  = Math.max(26, Math.min(fromW, fromH, 52));
+    document.documentElement.style.setProperty('--cell', cell+'px');
+    document.getElementById('main').style.gridTemplateColumns = '';
+    // Scale doll figure
+    const figH = Math.min(240, vh * 0.28);
+    setDollSize(figH);
+  } else {
+    // 3-col landscape. Divide viewport:
+    // doll = 22% of vw (min 180, max 260)
+    // backpack gets remaining * 0.38 (5 cols)
+    // stash gets remaining * 0.62 (10 cols)
+    const dollW  = Math.round(Math.max(180, Math.min(260, vw * 0.22)));
+    const remain = vw - dollW - 4; // 4px for borders
+    // Cell must fit:
+    //   A) inside backpack panel width: remain*0.38 / 5 cols
+    //   B) inside stash panel width:    remain*0.62 / 10 cols
+    //   C) inside panel height:         availH / 12 rows (stash is taller)
+    const bpPanelW = remain * 0.38;
+    const stPanelW = remain * 0.62;
+    const fromBpW  = Math.floor((bpPanelW - PAD - GAP*(DOLL_COLS-1)) / DOLL_COLS);
+    const fromStW  = Math.floor((stPanelW - PAD - GAP*(STASH_COLS-1)) / STASH_COLS);
+    const fromH    = Math.floor((availH - GAP*(STASH_ROWS-1)) / STASH_ROWS);
+    // Take the most constrained dimension
+    const cell = Math.max(26, Math.min(fromBpW, fromStW, fromH, 58));
+    document.documentElement.style.setProperty('--cell', cell+'px');
+    // Set columns: doll fixed, bp/st use fr proportional to their col counts
+    // so each cell is the same size in both grids
+    const bpW = DOLL_COLS * cell + (DOLL_COLS-1)*GAP + PAD;
+    const stW = STASH_COLS * cell + (STASH_COLS-1)*GAP + PAD;
+    document.getElementById('main').style.gridTemplateColumns = `${dollW}px ${bpW}px ${stW}px`;
+    // Scale doll figure
+    const figH = Math.min(320, availH * 0.88);
+    setDollSize(figH);
   }
-  return map;
 }
 
-function canFit(gridId, col, row, w, h, excludeUid = null) {
-  const cfg = GRID_CFG[gridId];
-  if (col < 0 || row < 0 || col + w > cfg.cols || row + h > cfg.rows) return false;
-  const occ = buildOccMap(gridId, excludeUid);
-  for (let r = 0; r < h; r++)
-    for (let c = 0; c < w; c++)
-      if (occ[row + r][col + c] !== null) return false;
+function setDollSize(figH){
+  const figW = figH * (200/320);
+  const fig  = document.getElementById('doll-figure');
+  if(fig){ fig.style.width=figW+'px'; fig.style.height=figH+'px'; }
+  rescaleSlots(figW, figH);
+}
+
+function rescaleSlots(fw, fh){
+  const sx=fw/200, sy=fh/320;
+  const BASE={
+    helmet:    {w:60, h:60,  top:2,   left:70,  right:null},
+    armor:     {w:76, h:90,  top:80,  left:62,  right:null},
+    primary:   {w:52, h:110, top:100, left:null, right:4},
+    secondary: {w:52, h:70,  top:220, left:null, right:4},
+    backpack:  {w:52, h:100, top:100, left:4,   right:null},
+    melee:     {w:52, h:60,  top:210, left:4,   right:null},
+  };
+  for(const [id,b] of Object.entries(BASE)){
+    const el=document.getElementById('slot-'+id);
+    if(!el) continue;
+    el.style.width  = Math.round(b.w*sx)+'px';
+    el.style.height = Math.round(b.h*sy)+'px';
+    el.style.top    = Math.round(b.top*sy)+'px';
+    if(b.left!==null){ el.style.left=Math.round(b.left*sx)+'px'; el.style.right=''; }
+    else             { el.style.right=Math.round(b.right*sx)+'px'; el.style.left=''; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   CSS HELPERS  (read --cell that applyCellSize just set)
+════════════════════════════════════════════════════════ */
+const cellPx  = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'))||52;
+const gapPx   = () => GAP;
+const stride  = () => cellPx() + GAP;
+const toXY    = (c,r) => ({x:c*stride(), y:r*stride()});
+const itemPx  = (w,h) => ({w:w*cellPx()+(w-1)*GAP, h:h*cellPx()+(h-1)*GAP});
+function occMap(gid, excl=null){
+  const cfg=GCFG[gid];
+  const m=Array.from({length:cfg.rows},()=>new Array(cfg.cols).fill(null));
+  for(const it of S.items[gid]){
+    if(it.uid===excl) continue;
+    const def=DEFS[it.defId];
+    const w=it.rotated?def.h:def.w, h=it.rotated?def.w:def.h;
+    for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+      const rr=it.row+r,cc=it.col+c;
+      if(rr<cfg.rows&&cc<cfg.cols) m[rr][cc]=it.uid;
+    }
+  }
+  return m;
+}
+
+function canFit(gid,col,row,w,h,excl=null){
+  const cfg=GCFG[gid];
+  if(col<0||row<0||col+w>cfg.cols||row+h>cfg.rows) return false;
+  const m=occMap(gid,excl);
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++) if(m[row+r][col+c]!==null) return false;
   return true;
 }
 
-// Top-left scan for first available slot
-function findSlot(gridId, w, h, excludeUid = null) {
-  const cfg = GRID_CFG[gridId];
-  for (let r = 0; r <= cfg.rows - h; r++)
-    for (let c = 0; c <= cfg.cols - w; c++)
-      if (canFit(gridId, c, r, w, h, excludeUid)) return { col: c, row: r };
+function findSlot(gid,w,h,excl=null){
+  const cfg=GCFG[gid];
+  for(let r=0;r<=cfg.rows-h;r++) for(let c=0;c<=cfg.cols-w;c++) if(canFit(gid,c,r,w,h,excl)) return {col:c,row:r};
   return null;
 }
 
-/* ══════════════════════════════════════════════════════════
-   CELL SIZE (from CSS custom property)
-══════════════════════════════════════════════════════════ */
-function cellPx() {
-  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell').trim()) || 52;
-}
-function gapPx() {
-  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap').trim()) || 2;
-}
-function stride() { return cellPx() + gapPx(); }
-
-function colRowToXY(col, row) {
-  const s = stride();
-  return { x: col * s, y: row * s };
-}
-function xyToColRow(x, y) {
-  const s = stride();
-  return { col: Math.round(x / s), row: Math.round(y / s) };
-}
-function itemSizePx(w, h) {
-  const c = cellPx(), g = gapPx();
-  return { w: w * c + (w - 1) * g, h: h * c + (h - 1) * g };
+/* ════════════════════════════════════════════════════════
+   STACKING LOGIC
+════════════════════════════════════════════════════════ */
+// Find an existing incomplete stack of same defId in a grid
+function findStack(gid, defId){
+  const def=DEFS[defId];
+  if(!def.stackSize||def.stackSize<=1) return null;
+  return S.items[gid].find(it=>it.defId===defId && (it.count||1)<def.stackSize) || null;
 }
 
-/* ══════════════════════════════════════════════════════════
-   RENDER
-══════════════════════════════════════════════════════════ */
-function renderGrid(gridId) {
-  const cfg = GRID_CFG[gridId];
-  const el  = document.getElementById('grid-' + gridId);
-  cfg.el = el;
-  el.innerHTML = '';
+/* ════════════════════════════════════════════════════════
+   ITEM OPERATIONS
+════════════════════════════════════════════════════════ */
+function addItem(gid, defId, col, row, opts={}){
+  const id = opts.uid||newUid();
+  const def = DEFS[defId];
+  const rotated = opts.rotated||false;
+  const w=rotated?def.h:def.w, h=rotated?def.w:def.h;
+  if(!canFit(gid,col,row,w,h)) return null;
+  const count = opts.count !== undefined ? opts.count : (def.count||1);
+  const it = {uid:id, defId, col, row, rotated, count};
+  S.items[gid].push(it);
+  return it;
+}
 
-  const c = cellPx(), g = gapPx(), s = stride();
-  const W = cfg.cols * c + (cfg.cols - 1) * g;
-  const H = cfg.rows * c + (cfg.rows - 1) * g;
-  el.style.width  = W + 'px';
-  el.style.height = H + 'px';
+function removeItem(gid, uid){
+  const i=S.items[gid].findIndex(x=>x.uid===uid);
+  if(i===-1) return null;
+  return S.items[gid].splice(i,1)[0];
+}
 
-  // Render cells
-  for (let r = 0; r < cfg.rows; r++) {
-    for (let co = 0; co < cfg.cols; co++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.style.left   = (co * s) + 'px';
-      cell.style.top    = (r  * s) + 'px';
-      cell.style.width  = c + 'px';
-      cell.style.height = c + 'px';
-      cell.dataset.col = co;
-      cell.dataset.row = r;
-      cell.dataset.grid = gridId;
-      el.appendChild(cell);
+function getItem(gid, uid){ return S.items[gid].find(x=>x.uid===uid)||null; }
+
+// Move within or across grids; handles rotation
+function moveItem(fromG, toG, uid, toCol, toRow, rotated){
+  const it = S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return false;
+  const def = DEFS[it.defId];
+  const r = rotated!==undefined?rotated:it.rotated;
+  const w=r?def.h:def.w, h=r?def.w:def.h;
+  const sameG = fromG===toG;
+  const excl = sameG?uid:null;
+  if(!canFit(toG,toCol,toRow,w,h,excl)) return false;
+  removeItem(fromG,uid);
+  const newIt = {uid,defId:it.defId,col:toCol,row:toRow,rotated:r,count:it.count};
+  S.items[toG].push(newIt);
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════
+   STASH-TRANSFER WITH STACKING
+════════════════════════════════════════════════════════ */
+function transferItem(fromG, uid){
+  const it = S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return;
+  const def = DEFS[it.defId];
+  const toG = GCFG[fromG].opposite;
+
+  // ── Priority 1: equip into an empty paper-doll slot if one matches ──
+  // Only applies to non-stackable gear items (weapons, armor, helmets, etc.)
+  if(!def.stackSize || def.stackSize <= 1){
+    const emptySlot = Object.keys(SLOT_ACCEPTS).find(
+      s => !S.equipped[s] && canEquipInSlot(it.defId, s)
+    );
+    if(emptySlot){
+      equipItem(emptySlot, uid, fromG);
+      return;
     }
   }
 
-  // Render items
-  for (const item of state.items[gridId]) {
-    renderItem(gridId, item, true);
+  // ── Priority 2: stacking into opposite grid ──
+  if(def.stackSize && def.stackSize > 1){
+    const stack = findStack(toG, it.defId);
+    if(stack){
+      const space = def.stackSize - (stack.count||1);
+      const toAdd = Math.min(space, it.count||1);
+      stack.count = (stack.count||1) + toAdd;
+      it.count = (it.count||1) - toAdd;
+      if(it.count<=0) removeItem(fromG,uid);
+      rerenderItem(toG, stack.uid);
+      if(it.count<=0) removeItemEl(uid);
+      else rerenderItem(fromG, uid);
+      updateStats(); saveAll();
+      toast(`${def.name} stacked (×${stack.count})`, 'ok');
+      return;
+    }
   }
 
+  // Try both orientations
+  const r = it.rotated;
+  const w=r?def.h:def.w, h=r?def.w:def.h;
+  let slot = findSlot(toG,w,h);
+  let useRot = r;
+  if(!slot && def.w!==def.h){
+    const slot2 = findSlot(toG, h, w); // try rotated
+    if(slot2){ slot=slot2; useRot=!r; }
+  }
+  if(!slot){ toast(`No space in ${GCFG[toG].label}!`,'err'); return; }
+
+  const el = document.querySelector(`.item[data-uid="${uid}"]`);
+  if(el){ el.classList.add('fly'); }
+  setTimeout(()=>{
+    removeItem(fromG,uid);
+    const newIt={uid,defId:it.defId,col:slot.col,row:slot.row,rotated:useRot,count:it.count};
+    S.items[toG].push(newIt);
+    if(el) el.remove();
+    renderItem(toG,newIt);
+    updateStats(); saveAll();
+    toast(`${def.name} → ${GCFG[toG].label}`,'ok');
+  }, 220);
+}
+
+/* ════════════════════════════════════════════════════════
+   AUTO-DROP INTO ZONE (drag released over grid area)
+════════════════════════════════════════════════════════ */
+function autoDropIntoGrid(fromG, uid, toG, preferRotation){
+  const it = S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return false;
+  const def = DEFS[it.defId];
+  const excl = fromG===toG ? uid : null;
+  // Honour rotation from drag state; fall back to item's stored rotation
+  const r = (preferRotation !== undefined) ? preferRotation : it.rotated;
+  const w=r?def.h:def.w, h=r?def.w:def.h;
+  let slot = findSlot(toG, w, h, excl);
+  let useRot = r;
+  // If preferred orientation doesn't fit, try the other one automatically
+  if(!slot && def.w!==def.h){
+    const slot2 = findSlot(toG, h, w, excl);
+    if(slot2){ slot=slot2; useRot=!r; }
+  }
+  if(!slot){ toast(`No space in ${GCFG[toG].label}!`,'err'); return false; }
+  const ok = moveItem(fromG, toG, uid, slot.col, slot.row, useRot);
+  return ok;
+}
+
+/* ════════════════════════════════════════════════════════
+   PAPER DOLL — EQUIP / UNEQUIP
+════════════════════════════════════════════════════════ */
+function canEquipInSlot(defId, slotId){
+  const def = DEFS[defId];
+  return SLOT_ACCEPTS[slotId]?.includes(def.cat);
+}
+
+function equipItem(slotId, uid, fromG){
+  const it = S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return false;
+  if(!canEquipInSlot(it.defId,slotId)){
+    toast(`Wrong item type for ${slotId} slot`,'err'); return false;
+  }
+  // Unequip existing
+  if(S.equipped[slotId]){
+    unequipSlot(slotId, true);
+  }
+  removeItem(fromG, uid);
+  removeItemEl(uid);
+  S.equipped[slotId]={uid, defId:it.defId, origGrid:fromG, count:it.count};
+  renderSlot(slotId);
+  updateStats(); saveAll();
+  toast(`${DEFS[it.defId].name} equipped`,'ok');
+  return true;
+}
+
+function unequipSlot(slotId, silent=false){
+  const eq = S.equipped[slotId];
+  if(!eq) return;
+  const def = DEFS[eq.defId];
+  // Send back to stash (try stash first, then backpack)
+  let placed = false;
+  for(const gid of ['st','bp']){
+    const slot = findSlot(gid, def.w, def.h);
+    if(slot){
+      S.items[gid].push({uid:eq.uid, defId:eq.defId, col:slot.col, row:slot.row, rotated:false, count:eq.count});
+      renderItem(gid, S.items[gid].find(x=>x.uid===eq.uid));
+      placed = true;
+      break;
+    }
+  }
+  if(!placed && !silent){ toast(`No space to unequip ${def.name}`,'err'); return; }
+  S.equipped[slotId]=null;
+  renderSlot(slotId);
+  updateStats(); saveAll();
+  if(!silent) toast(`${def.name} unequipped`,'');
+}
+
+function renderSlot(slotId){
+  const el = document.getElementById('slot-'+slotId);
+  if(!el) return;
+  const eq = S.equipped[slotId];
+  // Clear
+  el.querySelector('.eq-item')?.remove();
+  el.querySelector('.eq-unequip')?.remove();
+  el.className='eq-slot'+(eq?` filled r-${DEFS[eq.defId].rarity}`:'');
+  el.id='slot-'+slotId;
+  el.dataset.slot=slotId;
+  if(eq){
+    const def=DEFS[eq.defId];
+    const inner=document.createElement('div');
+    inner.className='eq-item';
+    inner.innerHTML=`<div class="eq-item-icon">${def.icon}</div><div class="eq-item-name">${def.name}</div>`;
+    el.appendChild(inner);
+    const btn=document.createElement('div');
+    btn.className='eq-unequip';
+    btn.innerHTML='✕';
+    btn.addEventListener('click',e=>{e.stopPropagation();unequipSlot(slotId);});
+    el.appendChild(btn);
+    // Tooltip
+    el.addEventListener('mouseenter',e=>{ if(!drag.active) showTooltip(def,e.clientX,e.clientY); });
+    el.addEventListener('mousemove',e=>{ if(!drag.active) posTooltip(e.clientX,e.clientY); });
+    el.addEventListener('mouseleave',hideTooltip);
+  }
+}
+
+function renderAllSlots(){ Object.keys(SLOT_ACCEPTS).forEach(renderSlot); }
+
+/* ════════════════════════════════════════════════════════
+   RENDER GRID
+════════════════════════════════════════════════════════ */
+function renderGrid(gid){
+  const cfg=GCFG[gid];
+  const el=document.getElementById('grid-'+gid);
+  el.innerHTML='';
+  const c=cellPx(),g=gapPx(),s=stride();
+  el.style.width =(cfg.cols*c+(cfg.cols-1)*g)+'px';
+  el.style.height=(cfg.rows*c+(cfg.rows-1)*g)+'px';
+  for(let r=0;r<cfg.rows;r++) for(let co=0;co<cfg.cols;co++){
+    const cell=document.createElement('div');
+    cell.className='cell';
+    cell.style.cssText=`left:${co*s}px;top:${r*s}px;width:${c}px;height:${c}px`;
+    cell.dataset.col=co; cell.dataset.row=r; cell.dataset.grid=gid;
+    el.appendChild(cell);
+  }
+  for(const it of S.items[gid]) renderItem(gid,it,true);
   updateStats();
 }
 
-function renderItem(gridId, item, noAnim = false) {
-  const def = DEFS[item.defId];
-  const pos = colRowToXY(item.col, item.row);
-  const siz = itemSizePx(def.w, def.h);
-  const el  = document.createElement('div');
-
-  el.className = `item r-${def.rarity}`;
-  el.dataset.uid  = item.uid;
-  el.dataset.grid = gridId;
-  el.style.left   = pos.x + 'px';
-  el.style.top    = pos.y + 'px';
-  el.style.width  = siz.w + 'px';
-  el.style.height = siz.h + 'px';
-
-  const opposite = GRID_CFG[gridId].opposite;
-  const xferClass = opposite === 'st' ? 'xfer-to-stash' : 'xfer-to-backpack';
-  const xferTitle = opposite === 'st' ? 'Send to Stash' : 'Send to Backpack';
-
-  el.innerHTML = `
-    <div class="item-body">
-      <div class="item-icon">${def.icon}</div>
-      <div class="item-label">${def.name}</div>
-      ${def.count ? `<div class="item-count">×${def.count}</div>` : ''}
-    </div>
-    <div class="item-xfer ${xferClass}" title="${xferTitle}" data-uid="${item.uid}" data-grid="${gridId}"></div>
-  `;
-
-  if (!noAnim) el.classList.add('land');
-
-  const grid = document.getElementById('grid-' + gridId);
-  grid.appendChild(el);
-
-  // Events
-  bindItem(el, item.uid, gridId);
+function renderItem(gid, it, noAnim=false){
+  const def=DEFS[it.defId];
+  const r=it.rotated;
+  const w=r?def.h:def.w, h=r?def.w:def.h;
+  const pos=toXY(it.col,it.row);
+  const siz=itemPx(w,h);
+  const el=document.createElement('div');
+  el.className=`item r-${def.rarity}`;
+  el.dataset.uid=it.uid; el.dataset.grid=gid;
+  el.style.cssText=`left:${pos.x}px;top:${pos.y}px;width:${siz.w}px;height:${siz.h}px`;
+  const opp=GCFG[gid].opposite;
+  const xferArrow=opp==='st'?'→':'←';
+  const stackBadge = (def.stackSize&&def.stackSize>1) ? `<div class="istack">×${it.count||1}</div>` : '';
+  const rotBadge   = it.rotated ? `<div class="irot">↺</div>` : '';
+  el.innerHTML=`<div class="ib">${rotBadge}<div class="iico">${def.icon}</div><div class="ilbl">${def.name}</div>${stackBadge}</div><div class="ixfer" data-uid="${it.uid}" data-grid="${gid}">${xferArrow}</div>`;
+  if(!noAnim) el.classList.add('land');
+  document.getElementById('grid-'+gid).appendChild(el);
+  bindItem(el,it.uid,gid);
 }
 
-function removeItemEl(uid) {
-  const el = document.querySelector(`.item[data-uid="${uid}"]`);
-  if (el) el.remove();
+function rerenderItem(gid, uid){
+  const el=document.querySelector(`.item[data-uid="${uid}"]`);
+  if(el) el.remove();
+  const it=S.items[gid].find(x=>x.uid===uid);
+  if(it) renderItem(gid,it,true);
 }
 
-/* ══════════════════════════════════════════════════════════
-   STATS
-══════════════════════════════════════════════════════════ */
-function updateStats() {
-  let bpSlots = 0, bpWeight = 0;
-  for (const it of state.items.bp) {
-    const d = DEFS[it.defId];
-    bpSlots += d.w * d.h;
-    bpWeight += d.weight;
-  }
-  const bpCap = GRID_CFG.bp.cols * GRID_CFG.bp.rows;
-
-  let stSlots = 0, stValue = 0;
-  for (const it of state.items.st) {
-    const d = DEFS[it.defId];
-    stSlots += d.w * d.h;
-    stValue += d.value;
-  }
-  const stCap = GRID_CFG.st.cols * GRID_CFG.st.rows;
-
-  // Header
-  document.getElementById('hs-weight').textContent = bpWeight.toFixed(1) + ' kg';
-  document.getElementById('hs-bp-cap').textContent  = bpSlots + ' / ' + bpCap;
-  document.getElementById('hs-value').textContent   = '₽ ' + stValue.toLocaleString();
-  document.getElementById('hs-count').textContent   = state.items.st.length;
-
-  // BP panel
-  document.getElementById('bp-used').textContent   = bpSlots;
-  document.getElementById('bp-total').textContent  = bpCap;
-  document.getElementById('bp-weight').textContent = bpWeight.toFixed(1) + ' kg';
-  document.getElementById('bp-bar').style.width    = Math.min(100, (bpSlots / bpCap) * 100) + '%';
-
-  // ST panel
-  document.getElementById('st-used').textContent  = stSlots;
-  document.getElementById('st-total').textContent = stCap;
-  document.getElementById('st-value').textContent = '₽ ' + stValue.toLocaleString();
-  document.getElementById('st-bar').style.width   = Math.min(100, (stSlots / stCap) * 100) + '%';
+function removeItemEl(uid){
+  document.querySelector(`.item[data-uid="${uid}"]`)?.remove();
 }
 
-/* ══════════════════════════════════════════════════════════
-   ITEM OPERATIONS
-══════════════════════════════════════════════════════════ */
-function addItem(gridId, defId, col, row, customUid = null) {
-  const id = customUid || newUid();
-  const def = DEFS[defId];
-  if (!canFit(gridId, col, row, def.w, def.h)) return null;
-  const item = { uid: id, defId, col, row };
-  state.items[gridId].push(item);
-  return item;
-}
-
-function removeItem(gridId, uid) {
-  const idx = state.items[gridId].findIndex(i => i.uid === uid);
-  if (idx === -1) return null;
-  return state.items[gridId].splice(idx, 1)[0];
-}
-
-function moveItem(fromGrid, toGrid, uid, toCol, toRow) {
-  const item = state.items[fromGrid].find(i => i.uid === uid);
-  if (!item) return false;
-  const def = DEFS[item.defId];
-  const sameGrid = fromGrid === toGrid;
-  const excludeUid = sameGrid ? uid : null;
-  if (!canFit(toGrid, toCol, toRow, def.w, def.h, excludeUid)) return false;
-  removeItem(fromGrid, uid);
-  addItem(toGrid, item.defId, toCol, toRow, uid);
-  return true;
-}
-
-function transferItem(fromGrid, uid) {
-  const item = state.items[fromGrid].find(i => i.uid === uid);
-  if (!item) return;
-  const def = DEFS[item.defId];
-  const toGrid = GRID_CFG[fromGrid].opposite;
-  const slot = findSlot(toGrid, def.w, def.h);
-  if (!slot) {
-    toast('No space in ' + GRID_CFG[toGrid].label + '!', 'err');
-    return;
-  }
-  // Animate out
-  const el = document.querySelector(`.item[data-uid="${uid}"]`);
-  if (el) {
-    el.classList.add('flying');
-    setTimeout(() => {
-      el.remove();
-      removeItem(fromGrid, uid);
-      const newItem = addItem(toGrid, def.id || item.defId, slot.col, slot.row, uid);
-      renderItem(toGrid, newItem);
-      updateStats();
-      saveState();
-      toast(def.name + ' → ' + GRID_CFG[toGrid].label, 'ok');
-    }, 240);
-  }
-}
-
-/* ══════════════════════════════════════════════════════════
-   HIT TEST — given page coords, return gridId + col + row
-══════════════════════════════════════════════════════════ */
-function hitGrid(clientX, clientY) {
-  for (const gridId of ['bp', 'st']) {
-    const el = document.getElementById('grid-' + gridId);
-    if (!el) continue;
-    const r = el.getBoundingClientRect();
-    if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) continue;
-    const s = stride();
-    const col = Math.floor((clientX - r.left) / s);
-    const row = Math.floor((clientY - r.top)  / s);
-    const cfg = GRID_CFG[gridId];
-    if (col < 0 || col >= cfg.cols || row < 0 || row >= cfg.rows) continue;
-    return { gridId, col, row };
+/* ════════════════════════════════════════════════════════
+   HIT TEST
+════════════════════════════════════════════════════════ */
+function hitGrid(cx,cy){
+  for(const gid of ['bp','st']){
+    const el=document.getElementById('grid-'+gid);
+    if(!el) continue;
+    const r=el.getBoundingClientRect();
+    if(cx<r.left||cx>r.right||cy<r.top||cy>r.bottom) continue;
+    const s=stride();
+    const col=Math.floor((cx-r.left)/s), row=Math.floor((cy-r.top)/s);
+    const cfg=GCFG[gid];
+    if(col<0||col>=cfg.cols||row<0||row>=cfg.rows) continue;
+    return {gid,col,row};
   }
   return null;
 }
 
-/* ══════════════════════════════════════════════════════════
-   CELL HIGHLIGHTING
-══════════════════════════════════════════════════════════ */
-function highlightCells(gridId, col, row, w, h, valid) {
-  const gridEl = document.getElementById('grid-' + gridId);
-  const cfg    = GRID_CFG[gridId];
-  const cls    = valid ? 'highlight-valid' : 'highlight-invalid';
-  for (let r = 0; r < h; r++) {
-    for (let c = 0; c < w; c++) {
-      const rr = row + r, cc = col + c;
-      if (rr < 0 || rr >= cfg.rows || cc < 0 || cc >= cfg.cols) continue;
-      const cell = gridEl.querySelector(`.cell[data-row="${rr}"][data-col="${cc}"]`);
-      if (cell) cell.classList.add(cls);
-    }
+// Hit test whether point is over the PANEL (entire side), not just the grid element
+function hitGridPanel(cx,cy){
+  for(const [gid,panelId] of [['bp','panel-bp'],['st','panel-st']]){
+    const el=document.getElementById(panelId);
+    if(!el) continue;
+    const r=el.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom) return gid;
+  }
+  return null;
+}
+
+function hitSlot(cx,cy){
+  for(const slotId of Object.keys(SLOT_ACCEPTS)){
+    const el=document.getElementById('slot-'+slotId);
+    if(!el) continue;
+    const r=el.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom) return slotId;
+  }
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════
+   HIGHLIGHTING
+════════════════════════════════════════════════════════ */
+function hiCells(gid,col,row,w,h,valid){
+  const cfg=GCFG[gid], ge=document.getElementById('grid-'+gid);
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+    const rr=row+r,cc=col+c;
+    if(rr<0||rr>=cfg.rows||cc<0||cc>=cfg.cols) continue;
+    ge.querySelector(`.cell[data-row="${rr}"][data-col="${cc}"]`)?.classList.add(valid?'hv':'hi');
   }
 }
+function clearHi(){ document.querySelectorAll('.cell.hv,.cell.hi').forEach(c=>c.classList.remove('hv','hi')); }
+function clearSlotHi(){ document.querySelectorAll('.eq-slot').forEach(s=>s.classList.remove('drag-over','drag-reject')); }
 
-function clearHighlights() {
-  document.querySelectorAll('.cell.highlight-valid, .cell.highlight-invalid').forEach(c => {
-    c.classList.remove('highlight-valid', 'highlight-invalid');
+/* ════════════════════════════════════════════════════════
+   AUTO-SORT (bin-packing by category)
+════════════════════════════════════════════════════════ */
+function sortGrid(gid){
+  const items=[...S.items[gid]];
+  // Sort by category order, then by area descending (bigger items first = better packing)
+  items.sort((a,b)=>{
+    const ca=CAT_ORDER[DEFS[a.defId].cat]??99, cb=CAT_ORDER[DEFS[b.defId].cat]??99;
+    if(ca!==cb) return ca-cb;
+    const da=DEFS[a.defId],db=DEFS[b.defId];
+    return (db.w*db.h)-(da.w*da.h);
   });
+  S.items[gid]=[];
+  const cfg=GCFG[gid];
+  const placed=[];
+  for(const it of items){
+    const def=DEFS[it.defId];
+    const r=it.rotated;
+    const w=r?def.h:def.w, h=r?def.w:def.h;
+    let slot=findSlot(gid,w,h);
+    if(!slot&&def.w!==def.h){ slot=findSlot(gid,h,w); if(slot) it.rotated=!r; }
+    if(slot){
+      it.col=slot.col; it.row=slot.row;
+      S.items[gid].push(it);
+    } else {
+      // Can't place — put back as-is
+      S.items[gid].push(it);
+    }
+  }
+  renderGrid(gid);
+  saveAll();
+  toast('Sorted','ok');
 }
 
-/* ══════════════════════════════════════════════════════════
-   DRAG STATE
-══════════════════════════════════════════════════════════ */
-const drag = {
-  active: false,
-  uid: null,
-  fromGrid: null,
-  def: null,
-  grabCol: 0,  // which cell within item was grabbed
-  grabRow: 0,
-  hasMoved: false,
+/* ════════════════════════════════════════════════════════
+   DRAG SYSTEM
+════════════════════════════════════════════════════════ */
+const drag={
+  active:false, uid:null, fromG:null, def:null,
+  rotated:false, grabCol:0, grabRow:0, hasMoved:false,
 };
 
-function startDrag(uid, fromGrid, clientX, clientY, sourceEl) {
-  const item = state.items[fromGrid].find(i => i.uid === uid);
-  if (!item) return;
-  const def = DEFS[item.defId];
-  const siz = itemSizePx(def.w, def.h);
-  const rect = sourceEl.getBoundingClientRect();
-  const s = stride();
-
-  drag.active   = true;
-  drag.uid      = uid;
-  drag.fromGrid = fromGrid;
-  drag.def      = def;
-  drag.hasMoved = false;
-  drag.grabCol  = Math.max(0, Math.min(def.w - 1, Math.floor((clientX - rect.left) / s)));
-  drag.grabRow  = Math.max(0, Math.min(def.h - 1, Math.floor((clientY - rect.top)  / s)));
-
-  // Ghost
-  const ghost = document.getElementById('ghost');
-  ghost.innerHTML = sourceEl.innerHTML;
-  ghost.className = `item r-${def.rarity}`;
-  ghost.style.width  = siz.w + 'px';
-  ghost.style.height = siz.h + 'px';
-  ghost.style.display = 'block';
-  moveGhost(clientX, clientY);
-
-  // Dim original
-  sourceEl.classList.add('dragging-source');
-
-  document.body.style.cursor = 'grabbing';
-  hideTooltip();
+function startDrag(uid,fromG,cx,cy,srcEl){
+  const it=S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return;
+  const def=DEFS[it.defId];
+  const rotated=it.rotated;
+  const w=rotated?def.h:def.w, h=rotated?def.w:def.h;
+  const siz=itemPx(w,h);
+  const rect=srcEl.getBoundingClientRect();
+  const s=stride();
+  drag.active=true; drag.uid=uid; drag.fromG=fromG; drag.def=def;
+  drag.rotated=rotated; drag.hasMoved=false;
+  drag.grabCol=Math.max(0,Math.min(w-1,Math.floor((cx-rect.left)/s)));
+  drag.grabRow=Math.max(0,Math.min(h-1,Math.floor((cy-rect.top)/s)));
+  const ghost=document.getElementById('ghost');
+  ghost.innerHTML=srcEl.innerHTML;
+  ghost.className=`item r-${def.rarity}`;
+  ghost.style.cssText=`display:block;left:${cx}px;top:${cy}px;width:${siz.w}px;height:${siz.h}px`;
+  srcEl.classList.add('src');
+  hideTooltip(); hideCtx();
+  document.body.style.cursor='grabbing';
 }
 
-function moveGhost(cx, cy) {
-  const g = document.getElementById('ghost');
-  g.style.left = cx + 'px';
-  g.style.top  = cy + 'px';
+function moveDrag(cx,cy){
+  if(!drag.active) return;
+  drag.hasMoved=true;
+  const ghost=document.getElementById('ghost');
+  ghost.style.left=cx+'px'; ghost.style.top=cy+'px';
+  clearHi(); clearSlotHi();
+  const def=drag.def;
+  const rotated=drag.rotated;
+  const w=rotated?def.h:def.w, h=rotated?def.w:def.h;
+  // Highlight grid cells
+  const hit=hitGrid(cx,cy);
+  if(hit){
+    const toCol=hit.col-drag.grabCol, toRow=hit.row-drag.grabRow;
+    const excl=drag.fromG===hit.gid?drag.uid:null;
+    const valid=canFit(hit.gid,toCol,toRow,w,h,excl);
+    hiCells(hit.gid,toCol,toRow,w,h,valid);
+  } else {
+    // Highlight doll slot if hovering
+    const slotId=hitSlot(cx,cy);
+    if(slotId){
+      const slotEl=document.getElementById('slot-'+slotId);
+      const accepts=canEquipInSlot(def.id||Object.keys(DEFS).find(k=>DEFS[k]===def),slotId);
+      // Re-derive defId
+      const defId=Object.keys(DEFS).find(k=>DEFS[k]===def)||drag.def.id;
+      const ok=canEquipInSlot(defId,slotId);
+      slotEl?.classList.add(ok?'drag-over':'drag-reject');
+    }
+  }
 }
 
-function endDrag(clientX, clientY) {
-  if (!drag.active) return;
-  drag.active = false;
+function endDrag(cx,cy){
+  if(!drag.active) return;
+  drag.active=false;
+  clearHi(); clearSlotHi();
+  document.getElementById('ghost').style.display='none';
+  document.body.style.cursor='';
+  const srcEl=document.querySelector(`.item[data-uid="${drag.uid}"]`);
+  if(srcEl) srcEl.classList.remove('src');
+  if(!drag.hasMoved){ drag.uid=null; drag.def=null; return; }
 
-  document.getElementById('ghost').style.display = 'none';
-  document.body.style.cursor = '';
-  clearHighlights();
+  const uid=drag.uid, fromG=drag.fromG, def=drag.def;
+  const rotated=drag.rotated;
+  const w=rotated?def.h:def.w, h=rotated?def.w:def.h;
+  const defId=Object.keys(DEFS).find(k=>DEFS[k]===def);
 
-  const srcEl = document.querySelector(`.item[data-uid="${drag.uid}"]`);
-  if (srcEl) srcEl.classList.remove('dragging-source');
+  // 1) Try equip slot (paper doll)
+  const slotId=hitSlot(cx,cy);
+  if(slotId){
+    const ok=equipItem(slotId,uid,fromG);
+    if(!ok) renderGrid(fromG);
+    drag.uid=null; drag.def=null; return;
+  }
 
-  if (!drag.hasMoved) return;
+  // 2) Check which panel we're over
+  const panelGid=hitGridPanel(cx,cy);
 
-  const hit = hitGrid(clientX, clientY);
-  if (hit) {
-    const toCol = hit.col - drag.grabCol;
-    const toRow = hit.row - drag.grabRow;
-    const ok = moveItem(drag.fromGrid, hit.gridId, drag.uid, toCol, toRow);
-    if (ok) {
-      if (srcEl) srcEl.remove();
-      const newItem = state.items[hit.gridId].find(i => i.uid === drag.uid);
-      if (newItem) renderItem(hit.gridId, newItem);
-      if (drag.fromGrid !== hit.gridId) {
-        // Cross-grid: also redraw source grid stats
-      }
-      updateStats();
-      saveState();
+  // 3) If over the OPPOSITE panel → always auto-fit (no precise targeting needed)
+  if(panelGid && panelGid !== fromG){
+    const ok=autoDropIntoGrid(fromG,uid,panelGid,drag.rotated);
+    if(ok){
+      if(srcEl) srcEl.remove();
+      const newIt=S.items[panelGid].find(x=>x.uid===uid);
+      if(newIt) renderItem(panelGid,newIt);
+      updateStats(); saveAll();
+      // No toast needed — fast loot flow
     } else {
-      toast('Cannot place there', 'err');
+      renderGrid(fromG);
     }
+    drag.uid=null; drag.def=null; return;
   }
 
-  drag.uid = null;
-  drag.def = null;
+  // 4) Same panel → try precise cell placement
+  if(panelGid && panelGid === fromG){
+    const hit=hitGrid(cx,cy);
+    if(hit && hit.gid===fromG){
+      const toCol=hit.col-drag.grabCol, toRow=hit.row-drag.grabRow;
+      const ok=moveItem(fromG,fromG,uid,toCol,toRow,rotated);
+      if(ok){
+        if(srcEl) srcEl.remove();
+        const newIt=S.items[fromG].find(x=>x.uid===uid);
+        if(newIt) renderItem(fromG,newIt);
+        updateStats(); saveAll();
+      } else {
+        // Precise placement failed in same panel — try auto-fit within same panel
+        const ok2=autoDropIntoGrid(fromG,uid,fromG,drag.rotated);
+        if(ok2){
+          if(srcEl) srcEl.remove();
+          const newIt=S.items[fromG].find(x=>x.uid===uid);
+          if(newIt) renderItem(fromG,newIt);
+          updateStats(); saveAll();
+        } else {
+          toast('Cannot place there','err');
+          renderGrid(fromG);
+        }
+      }
+      drag.uid=null; drag.def=null; return;
+    }
+    // Dropped in panel but not on a cell (e.g. over sort button) → auto-fit same panel
+    const ok=autoDropIntoGrid(fromG,uid,fromG,drag.rotated);
+    if(ok){
+      if(srcEl) srcEl.remove();
+      const newIt=S.items[fromG].find(x=>x.uid===uid);
+      if(newIt) renderItem(fromG,newIt);
+      updateStats(); saveAll();
+    } else {
+      renderGrid(fromG);
+    }
+    drag.uid=null; drag.def=null; return;
+  }
+
+  // 5) Dropped nowhere — snap back
+  renderGrid(fromG);
+  drag.uid=null; drag.def=null;
 }
 
-/* ══════════════════════════════════════════════════════════
-   ITEM EVENT BINDING
-══════════════════════════════════════════════════════════ */
-function bindItem(el, uid, gridId) {
-  const def = DEFS[state.items[gridId].find(i => i.uid === uid)?.defId];
-  if (!def) return;
+/* ════════════════════════════════════════════════════════
+   BIND ITEM EVENTS
+════════════════════════════════════════════════════════ */
+function bindItem(el,uid,gid){
+  const itRef=()=>S.items[gid].find(x=>x.uid===uid);
+  const defRef=()=>DEFS[itRef()?.defId];
 
-  /* ── Pointer events (handles both mouse + touch) ── */
-  el.addEventListener('pointerdown', e => {
-    if (e.target.classList.contains('item-xfer')) return; // handled separately
-    if (e.button !== undefined && e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+  // Pointer drag
+  el.addEventListener('pointerdown',e=>{
+    if(e.target.classList.contains('ixfer')) return;
+    if(e.button!==undefined&&e.button!==0) return;
+    e.preventDefault(); e.stopPropagation();
     el.setPointerCapture(e.pointerId);
-    startDrag(uid, gridId, e.clientX, e.clientY, el);
+    startDrag(uid,gid,e.clientX,e.clientY,el);
   });
-
-  el.addEventListener('pointermove', e => {
-    if (!drag.active || drag.uid !== uid) return;
-    drag.hasMoved = true;
-    moveGhost(e.clientX, e.clientY);
-    clearHighlights();
-    const hit = hitGrid(e.clientX, e.clientY);
-    if (hit) {
-      const toCol = hit.col - drag.grabCol;
-      const toRow = hit.row - drag.grabRow;
-      const excl = drag.fromGrid === hit.gridId ? drag.uid : null;
-      const valid = canFit(hit.gridId, toCol, toRow, drag.def.w, drag.def.h, excl);
-      highlightCells(hit.gridId, toCol, toRow, drag.def.w, drag.def.h, valid);
+  el.addEventListener('pointermove',e=>{
+    if(!drag.active||drag.uid!==uid) return;
+    moveDrag(e.clientX,e.clientY);
+  });
+  el.addEventListener('pointerup',e=>{
+    if(!drag.active||drag.uid!==uid) return;
+    endDrag(e.clientX,e.clientY);
+  });
+  el.addEventListener('pointercancel',()=>{
+    if(drag.active&&drag.uid===uid){
+      drag.active=false;
+      document.getElementById('ghost').style.display='none';
+      clearHi(); clearSlotHi();
+      document.body.style.cursor='';
+      el.classList.remove('src');
+      drag.uid=null; drag.def=null;
     }
   });
 
-  el.addEventListener('pointerup', e => {
-    if (!drag.active || drag.uid !== uid) return;
-    endDrag(e.clientX, e.clientY);
-  });
-
-  el.addEventListener('pointercancel', () => {
-    if (drag.active && drag.uid === uid) {
-      drag.active = false;
-      document.getElementById('ghost').style.display = 'none';
-      clearHighlights();
-      document.body.style.cursor = '';
-      const s = document.querySelector(`.item[data-uid="${uid}"]`);
-      if (s) s.classList.remove('dragging-source');
+  // Keyboard hover tracking (for F key)
+  el.addEventListener('mouseenter',e=>{
+    hoveredItem={uid,gid};
+    if(!drag.active){
+      const def=defRef();
+      if(def) showTooltip(def,e.clientX,e.clientY);
     }
   });
-
-  /* ── Tooltip (desktop hover) ── */
-  el.addEventListener('mouseenter', e => {
-    if (drag.active) return;
-    showTooltip(def, e.clientX, e.clientY);
-  });
-  el.addEventListener('mousemove', e => {
-    if (!drag.active) posTooltip(e.clientX, e.clientY);
-  });
-  el.addEventListener('mouseleave', () => hideTooltip());
-
-  /* ── Long press for tooltip on mobile ── */
-  let lpTimer = null;
-  el.addEventListener('touchstart', () => {
-    lpTimer = setTimeout(() => {
-      el.classList.add('touch-selected');
-      // tooltip uses touch position — approximate center of item
-      const r = el.getBoundingClientRect();
-      showTooltip(def, r.right, r.top);
-      setTimeout(() => { el.classList.remove('touch-selected'); hideTooltip(); }, 3000);
-    }, 500);
-  }, { passive: true });
-  el.addEventListener('touchend', () => clearTimeout(lpTimer));
-  el.addEventListener('touchmove', () => clearTimeout(lpTimer), { passive: true });
-
-  /* ── Right-click context menu ── */
-  el.addEventListener('contextmenu', e => {
-    e.preventDefault();
+  el.addEventListener('mousemove',e=>{ if(!drag.active) posTooltip(e.clientX,e.clientY); });
+  el.addEventListener('mouseleave',()=>{
+    if(hoveredItem?.uid===uid) hoveredItem=null;
     hideTooltip();
-    showCtx(e.clientX, e.clientY, uid, gridId);
   });
 
-  /* ── Transfer button ── */
-  const xferBtn = el.querySelector('.item-xfer');
-  if (xferBtn) {
-    xferBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      transferItem(gridId, uid);
-    });
-    xferBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  // Long press mobile
+  let lpT=null;
+  el.addEventListener('touchstart',()=>{
+    lpT=setTimeout(()=>{
+      const def=defRef();
+      const r=el.getBoundingClientRect();
+      if(def) showTooltip(def,r.right,r.top);
+      setTimeout(hideTooltip,3500);
+    },500);
+  },{passive:true});
+  el.addEventListener('touchend',()=>clearTimeout(lpT));
+  el.addEventListener('touchmove',()=>clearTimeout(lpT),{passive:true});
+
+  // Right-click
+  el.addEventListener('contextmenu',e=>{ e.preventDefault(); hideTooltip(); showCtx(e.clientX,e.clientY,uid,gid); });
+
+  // Transfer button
+  el.querySelector('.ixfer')?.addEventListener('click',e=>{
+    e.stopPropagation(); transferItem(gid,uid);
+  });
+  el.querySelector('.ixfer')?.addEventListener('pointerdown',e=>e.stopPropagation());
+}
+
+/* ════════════════════════════════════════════════════════
+   KEYBOARD — R to rotate, F to quick-transfer
+════════════════════════════════════════════════════════ */
+// Track last known cursor position so R key can refresh highlights
+let lastCursorX = 0, lastCursorY = 0;
+document.addEventListener('mousemove', e=>{ lastCursorX=e.clientX; lastCursorY=e.clientY; }, {passive:true});
+document.addEventListener('pointermove', e=>{ if(e.pointerType!=='mouse') return; lastCursorX=e.clientX; lastCursorY=e.clientY; }, {passive:true});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ hideCtx(); hideTooltip(); return; }
+
+  // ── R : rotate ──────────────────────────────────────
+  if(e.key==='r'||e.key==='R'){
+
+    // ── CASE 1: dragging — rotate ghost in-flight, no DOM/state change yet ──
+    if(drag.active){
+      const def = drag.def;
+      if(!def || def.w===def.h) return; // square, nothing to do
+
+      const newR = !drag.rotated;
+      drag.rotated = newR;
+
+      // Resize ghost to new dimensions
+      const nw = newR ? def.h : def.w;
+      const nh = newR ? def.w : def.h;
+      const siz = itemPx(nw, nh);
+      const ghost = document.getElementById('ghost');
+      ghost.style.width  = siz.w + 'px';
+      ghost.style.height = siz.h + 'px';
+
+      // Clamp grab offset to new bounds so it doesn't go out of range
+      drag.grabCol = Math.min(drag.grabCol, nw - 1);
+      drag.grabRow = Math.min(drag.grabRow, nh - 1);
+
+      // Refresh cell highlights at current cursor
+      clearHi(); clearSlotHi();
+      const hit = hitGrid(lastCursorX, lastCursorY);
+      if(hit){
+        const toCol = hit.col - drag.grabCol;
+        const toRow = hit.row - drag.grabRow;
+        const excl  = drag.fromG === hit.gid ? drag.uid : null;
+        const valid = canFit(hit.gid, toCol, toRow, nw, nh, excl);
+        hiCells(hit.gid, toCol, toRow, nw, nh, valid);
+      }
+      return;
+    }
+
+    // ── CASE 2: hovering (not dragging) — rotate item in place ──
+    if(!hoveredItem) return;
+    const {uid, gid} = hoveredItem;
+    const it  = S.items[gid].find(x=>x.uid===uid);
+    if(!it) return;
+    const def = DEFS[it.defId];
+    if(def.w===def.h){ toast('Square items can\'t rotate',''); return; }
+    const newR = !it.rotated;
+    const nw   = newR ? def.h : def.w;
+    const nh   = newR ? def.w : def.h;
+    if(canFit(gid, it.col, it.row, nw, nh, uid)){
+      it.rotated = newR;
+      rerenderItem(gid, uid);
+      hoveredItem = {uid, gid};
+      saveAll();
+    } else {
+      const slot = findSlot(gid, nw, nh, uid);
+      if(slot){
+        it.rotated = newR; it.col = slot.col; it.row = slot.row;
+        rerenderItem(gid, uid);
+        hoveredItem = {uid, gid};
+        saveAll();
+      } else {
+        toast('No room to rotate here','err');
+      }
+    }
+    return;
   }
+
+  // ── F : quick transfer ───────────────────────────────
+  if(e.key==='f'||e.key==='F'){
+    if(!hoveredItem) return;
+    transferItem(hoveredItem.gid, hoveredItem.uid);
+  }
+});
+
+/* ════════════════════════════════════════════════════════
+   STATS
+════════════════════════════════════════════════════════ */
+function updateStats(){
+  let bpSlots=0,bpWt=0;
+  for(const it of S.items.bp){ const d=DEFS[it.defId]; const r=it.rotated; bpSlots+=(r?d.h:d.w)*(r?d.w:d.h); bpWt+=d.weight; }
+  const bpCap=GCFG.bp.cols*GCFG.bp.rows;
+
+  let stSlots=0,stVal=0;
+  for(const it of S.items.st){ const d=DEFS[it.defId]; stSlots+=(it.rotated?d.h:d.w)*(it.rotated?d.w:d.h); stVal+=d.value; }
+  const stCap=GCFG.st.cols*GCFG.st.rows;
+
+  let eqWt=0,armorClass=0,firepower=0;
+  for(const [slot,eq] of Object.entries(S.equipped)){
+    if(!eq) continue;
+    const d=DEFS[eq.defId];
+    eqWt+=d.weight;
+    if(d.stats?.ArmorClass) armorClass=Math.max(armorClass,parseInt(d.stats.ArmorClass)||0);
+    if(d.stats?.Firepower)  firepower=Math.max(firepower,parseInt(d.stats.Firepower)||0);
+  }
+
+  // Header
+  document.getElementById('hs-wt').textContent=(bpWt+eqWt).toFixed(1)+' kg';
+  document.getElementById('hs-bp').textContent=bpSlots+'/'+bpCap;
+  document.getElementById('hs-val').textContent='₽'+stVal.toLocaleString();
+  document.getElementById('hs-ac').textContent=armorClass?'Class '+armorClass:'—';
+
+  // BP panel
+  document.getElementById('bp-used').textContent=bpSlots;
+  document.getElementById('bp-tot').textContent=bpCap;
+  document.getElementById('bp-wt').textContent=bpWt.toFixed(1)+' kg';
+  document.getElementById('bp-bar').style.width=Math.min(100,bpSlots/bpCap*100)+'%';
+
+  // ST panel
+  document.getElementById('st-used').textContent=stSlots;
+  document.getElementById('st-tot').textContent=stCap;
+  document.getElementById('st-val').textContent='₽'+stVal.toLocaleString();
+  document.getElementById('st-bar').style.width=Math.min(100,stSlots/stCap*100)+'%';
+
+  // Doll stats
+  document.getElementById('ds-prot').textContent=armorClass?'Class '+armorClass+' protection':'None equipped';
+  document.getElementById('ds-prot-bar').style.width=(armorClass/6*100)+'%';
+  document.getElementById('ds-wt').textContent=eqWt.toFixed(1)+' kg';
+  document.getElementById('ds-wt-bar').style.width=Math.min(100,eqWt/15*100)+'%';
+  document.getElementById('ds-fp').textContent=firepower?'FP '+firepower:'No weapon';
+  document.getElementById('ds-fp-bar').style.width=Math.min(100,firepower/100*100)+'%';
 }
 
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    TOOLTIP
-══════════════════════════════════════════════════════════ */
-function showTooltip(def, cx, cy) {
-  const tt = document.getElementById('tooltip');
-  const statsHTML = Object.entries(def.stats || {}).map(([k,v]) =>
-    `<div class="tt-stat"><span class="tt-stat-key">${k}</span><span class="tt-stat-val">${v}</span></div>`
-  ).join('');
-  tt.className = 'tt-' + def.rarity;
-  tt.innerHTML = `
-    <div class="tt-name">${def.name}</div>
-    <div class="tt-rarity">${def.rarity}${def.count ? ' &nbsp;×'+def.count : ''}</div>
-    <div class="tt-desc">${def.desc}</div>
-    <div class="tt-stats">${statsHTML}</div>
-    <div class="tt-footer"><span>${def.w}×${def.h} slots</span><span>${def.weight} kg&nbsp;&nbsp;₽${def.value}</span></div>
-  `;
-  tt.style.display = 'block';
-  posTooltip(cx, cy);
+════════════════════════════════════════════════════════ */
+function showTooltip(def,cx,cy){
+  const tt=document.getElementById('tooltip');
+  const hints=[];
+  if(def.stackSize&&def.stackSize>1) hints.push('Stackable ×'+def.stackSize);
+  if(def.w!==def.h) hints.push('[R] Rotate');
+  hints.push('[F] Transfer');
+  const statsHTML=Object.entries(def.stats||{}).map(([k,v])=>`<div class="tt-sv"><span class="tt-sk">${k}</span><span class="tt-sval">${v}</span></div>`).join('');
+  tt.className='tt-'+def.rarity;
+  tt.innerHTML=`<div class="tt-n">${def.name}</div><div class="tt-r">${def.rarity}${def.count?` ×${def.count}`:''}</div><div class="tt-d">${def.desc}</div><div class="tt-s">${statsHTML}</div><div class="tt-f"><span>${def.w}×${def.h} slots</span><span>${def.weight} kg &nbsp;₽${def.value}</span></div>${hints.length?`<div class="tt-hint">${hints.join(' &nbsp;·&nbsp; ')}</div>`:''}`;
+  tt.style.display='block';
+  posTooltip(cx,cy);
 }
-
-function posTooltip(cx, cy) {
-  const tt  = document.getElementById('tooltip');
-  const tw  = 220, th = 160;
-  const vw  = window.innerWidth, vh = window.innerHeight;
-  let left  = cx + 18, top = cy + 12;
-  if (left + tw > vw - 6) left = cx - tw - 10;
-  if (top  + th > vh - 6) top  = cy - th - 10;
-  tt.style.left = Math.max(4, left) + 'px';
-  tt.style.top  = Math.max(4, top)  + 'px';
+function posTooltip(cx,cy){
+  const tt=document.getElementById('tooltip');
+  const tw=220,th=180,vw=window.innerWidth,vh=window.innerHeight;
+  let l=cx+18,t=cy+12;
+  if(l+tw>vw-6) l=cx-tw-10;
+  if(t+th>vh-6) t=cy-th-10;
+  tt.style.left=Math.max(4,l)+'px'; tt.style.top=Math.max(4,t)+'px';
 }
+function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
 
-function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
-
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    CONTEXT MENU
-══════════════════════════════════════════════════════════ */
-function showCtx(cx, cy, uid, fromGrid) {
-  const ctx = document.getElementById('ctx');
-  const toGrid = GRID_CFG[fromGrid].opposite;
-  const def = DEFS[state.items[fromGrid].find(i => i.uid === uid)?.defId];
-  const toLabel = toGrid === 'st' ? 'Send to Stash' : 'Send to Backpack';
+════════════════════════════════════════════════════════ */
+function showCtx(cx,cy,uid,fromG){
+  const ctx=document.getElementById('ctx');
+  const it=S.items[fromG].find(x=>x.uid===uid);
+  if(!it) return;
+  const def=DEFS[it.defId];
+  const toG=GCFG[fromG].opposite;
+  const defId=it.defId;
 
-  ctx.innerHTML = `
-    <div class="ctx-row" data-action="xfer"><span class="ctx-icon">${toGrid === 'st' ? '→' : '←'}</span>${toLabel}</div>
-    <div class="ctx-row" data-action="inspect"><span class="ctx-icon">◈</span>Inspect</div>
-    <div class="ctx-row danger" data-action="discard"><span class="ctx-icon">✕</span>Discard</div>
-  `;
+  // Find equippable slots
+  const eqSlots=Object.keys(SLOT_ACCEPTS).filter(s=>canEquipInSlot(defId,s));
 
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const mw = 180, mh = 110;
-  ctx.style.left    = Math.min(cx, vw - mw - 6) + 'px';
-  ctx.style.top     = Math.min(cy, vh - mh - 6) + 'px';
-  ctx.style.display = 'block';
+  let rows=`<div class="ctx-r" data-a="xfer"><span class="ctx-ic">${toG==='st'?'→':'←'}</span>Send to ${GCFG[toG].label}</div>`;
+  if(def.w!==def.h) rows+=`<div class="ctx-r" data-a="rot"><span class="ctx-ic">↺</span>Rotate</div>`;
+  eqSlots.forEach(s=>{ rows+=`<div class="ctx-r" data-a="equip" data-slot="${s}"><span class="ctx-ic">⚔</span>Equip (${s})</div>`; });
+  rows+=`<div class="ctx-r dng" data-a="disc"><span class="ctx-ic">✕</span>Discard</div>`;
 
-  ctx.querySelectorAll('.ctx-row').forEach(row => {
-    row.addEventListener('click', () => {
+  ctx.innerHTML=rows;
+  const vw=window.innerWidth,vh=window.innerHeight;
+  ctx.style.cssText=`display:block;left:${Math.min(cx,vw-185)}px;top:${Math.min(cy,vh-150)}px`;
+
+  ctx.querySelectorAll('.ctx-r').forEach(row=>{
+    row.addEventListener('click',()=>{
       hideCtx();
-      switch (row.dataset.action) {
-        case 'xfer':
-          transferItem(fromGrid, uid);
-          break;
-        case 'inspect':
-          if (def) showTooltip(def, cx, cy - 150);
-          setTimeout(hideTooltip, 5000);
-          break;
-        case 'discard': {
-          const item = state.items[fromGrid].find(i => i.uid === uid);
-          if (item) {
-            removeItem(fromGrid, uid);
-            removeItemEl(uid);
-            updateStats();
-            saveState();
-            toast(def?.name + ' discarded', '');
+      switch(row.dataset.a){
+        case 'xfer': transferItem(fromG,uid); break;
+        case 'rot': {
+          const itNow=S.items[fromG].find(x=>x.uid===uid);
+          if(itNow){
+            const d=DEFS[itNow.defId],newR=!itNow.rotated;
+            const nw=newR?d.h:d.w,nh=newR?d.w:d.h;
+            const slot=canFit(fromG,itNow.col,itNow.row,nw,nh,uid)?{col:itNow.col,row:itNow.row}:findSlot(fromG,nw,nh,uid);
+            if(slot){itNow.rotated=newR;itNow.col=slot.col;itNow.row=slot.row;rerenderItem(fromG,uid);saveAll();}
+            else toast('No room to rotate','err');
           }
+          break;
+        }
+        case 'equip': equipItem(row.dataset.slot,uid,fromG); break;
+        case 'disc': {
+          const itNow=S.items[fromG].find(x=>x.uid===uid);
+          if(itNow){ removeItem(fromG,uid); removeItemEl(uid); updateStats(); saveAll(); toast(def.name+' discarded',''); }
           break;
         }
       }
     });
   });
 }
+function hideCtx(){ document.getElementById('ctx').style.display='none'; }
+document.addEventListener('click',e=>{ if(!e.target.closest('#ctx')) hideCtx(); });
 
-function hideCtx() { document.getElementById('ctx').style.display = 'none'; }
-document.addEventListener('click', e => { if (!e.target.closest('#ctx')) hideCtx(); });
-document.addEventListener('contextmenu', e => { if (!e.target.closest('.item')) hideCtx(); });
-
-/* ══════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    TOASTS
-══════════════════════════════════════════════════════════ */
-function toast(msg, type = '') {
-  const t = document.createElement('div');
-  t.className = 'toast' + (type ? ' ' + type : '');
-  t.textContent = msg;
+════════════════════════════════════════════════════════ */
+function toast(msg,type=''){
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
   document.getElementById('toasts').appendChild(t);
-  setTimeout(() => t.remove(), 2600);
+  setTimeout(()=>t.remove(),2600);
 }
 
-/* ══════════════════════════════════════════════════════════
-   KEYBOARD
-══════════════════════════════════════════════════════════ */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { hideCtx(); hideTooltip(); }
-});
-
-/* ══════════════════════════════════════════════════════════
-   RESIZE — rebuild grids with correct cell sizes
-══════════════════════════════════════════════════════════ */
-let resizeRaf = null;
-window.addEventListener('resize', () => {
-  if (resizeRaf) cancelAnimationFrame(resizeRaf);
-  resizeRaf = requestAnimationFrame(() => {
+/* ════════════════════════════════════════════════════════
+   RESIZE
+════════════════════════════════════════════════════════ */
+let _raf=null;
+window.addEventListener('resize',()=>{
+  if(_raf) cancelAnimationFrame(_raf);
+  _raf=requestAnimationFrame(()=>{
+    applyCellSize();
     renderGrid('bp');
     renderGrid('st');
   });
 });
 
-/* ══════════════════════════════════════════════════════════
-   INITIAL DATA
-══════════════════════════════════════════════════════════ */
-function populateBackpack() {
-  const bpStart = [
-    { id:'pistol',    col:0, row:0 },
-    { id:'ammo_9',    col:2, row:0 },
-    { id:'ammo_9',    col:3, row:0 },
-    { id:'medkit',    col:4, row:0 },
-    { id:'grenade',   col:0, row:1 },
-    { id:'smoke',     col:1, row:1 },
-    { id:'knife',     col:2, row:1 },
-    { id:'food',      col:4, row:1 },
-    { id:'battery',   col:3, row:1 },
-    { id:'salewa',    col:0, row:2 },
+/* ════════════════════════════════════════════════════════
+   DEFAULT POPULATION
+════════════════════════════════════════════════════════ */
+function populateBP(){
+  const starts=[
+    {id:'pistol',c:0,r:0},{id:'ammo_9',c:2,r:0},{id:'ammo_9',c:3,r:0},
+    {id:'medkit',c:4,r:0},{id:'grenade',c:0,r:1},{id:'smoke',c:1,r:1},
+    {id:'knife',c:2,r:1},{id:'food',c:4,r:1},{id:'salewa',c:0,r:2},
   ];
-  for (const s of bpStart) {
-    const def = DEFS[s.id];
-    if (canFit('bp', s.col, s.row, def.w, def.h))
-      addItem('bp', s.id, s.col, s.row);
+  for(const s of starts){
+    const d=DEFS[s.id];
+    if(canFit('bp',s.c,s.r,d.w,d.h)) addItem('bp',s.id,s.c,s.r);
   }
 }
 
-function populateStashDefault() {
-  const stStart = [
-    { id:'rifle',       col:0, row:0 },
-    { id:'rifle_b',     col:0, row:2 },
-    { id:'shotgun',     col:4, row:0 },
-    { id:'pistol_b',    col:4, row:1 },
-    { id:'suppressor',  col:6, row:1 },
-    { id:'scope',       col:8, row:0 },
-    { id:'ammo_545',    col:0, row:4 },
-    { id:'ammo_545',    col:1, row:4 },
-    { id:'ammo_545',    col:2, row:4 },
-    { id:'ammo_556',    col:3, row:4 },
-    { id:'ammo_556',    col:4, row:4 },
-    { id:'ammo_9',      col:5, row:4 },
-    { id:'ammo_9',      col:6, row:4 },
-    { id:'ammo_12ga',   col:7, row:4 },
-    { id:'armor',       col:0, row:5 },
-    { id:'armor_b',     col:2, row:5 },
-    { id:'helmet',      col:4, row:5 },
-    { id:'helmet_b',    col:6, row:5 },
-    { id:'surv12',      col:8, row:5 },
-    { id:'salewa',      col:0, row:8 },
-    { id:'salewa',      col:2, row:8 },
-    { id:'medkit',      col:4, row:8 },
-    { id:'medkit',      col:5, row:8 },
-    { id:'medkit',      col:6, row:8 },
-    { id:'fuel',        col:7, row:8 },
-    { id:'fuel',        col:8, row:8 },
-    { id:'watch',       col:9, row:0 },
-    { id:'dogtag',      col:9, row:1 },
-    { id:'dogtag',      col:9, row:2 },
-    { id:'backpack2',   col:7, row:9 },
-    { id:'battery',     col:0, row:10 },
-    { id:'food',        col:1, row:10 },
-    { id:'food',        col:2, row:10 },
-    { id:'food',        col:3, row:10 },
+function populateST(){
+  const starts=[
+    {id:'rifle',c:0,r:0},{id:'rifle_b',c:0,r:2},{id:'shotgun',c:4,r:0},
+    {id:'pistol_b',c:4,r:1},{id:'suppressor',c:6,r:1},{id:'scope',c:8,r:0},
+    {id:'ammo_545',c:0,r:4},{id:'ammo_545',c:1,r:4},{id:'ammo_545',c:2,r:4},
+    {id:'ammo_556',c:3,r:4},{id:'ammo_556',c:4,r:4},{id:'ammo_9',c:5,r:4},
+    {id:'ammo_9',c:6,r:4},{id:'ammo_12ga',c:7,r:4},
+    {id:'armor',c:0,r:5},{id:'armor_b',c:2,r:5},
+    {id:'helmet',c:4,r:5},{id:'helmet_b',c:6,r:5},
+    {id:'surv12',c:8,r:5},{id:'salewa',c:0,r:8},{id:'salewa',c:2,r:8},
+    {id:'medkit',c:4,r:8},{id:'medkit',c:5,r:8},{id:'medkit',c:6,r:8},
+    {id:'fuel',c:7,r:8},{id:'fuel',c:9,r:8},
+    {id:'watch',c:9,r:0},{id:'dogtag',c:9,r:1},{id:'dogtag',c:9,r:2},
+    {id:'backpack2',c:7,r:9},{id:'battery',c:0,r:10},
+    {id:'food',c:1,r:10},{id:'food',c:2,r:10},{id:'food',c:3,r:10},
   ];
-  for (const s of stStart) {
-    const def = DEFS[s.id];
-    if (def && canFit('st', s.col, s.row, def.w, def.h))
-      addItem('st', s.id, s.col, s.row);
+  for(const s of starts){
+    const d=DEFS[s.id];
+    if(d&&canFit('st',s.c,s.r,d.w,d.h)) addItem('st',s.id,s.c,s.r);
   }
 }
 
-/* ══════════════════════════════════════════════════════════
+function populateEquipped(){
+  // Default equipped gear for demo
+  S.equipped.helmet   = {uid:newUid(),defId:'helmet',   origGrid:'st',count:1};
+  S.equipped.armor    = {uid:newUid(),defId:'armor',    origGrid:'st',count:1};
+  S.equipped.primary  = {uid:newUid(),defId:'rifle',    origGrid:'st',count:1};
+  S.equipped.secondary= {uid:newUid(),defId:'pistol',   origGrid:'st',count:1};
+}
+
+/* ════════════════════════════════════════════════════════
    BOOT
-══════════════════════════════════════════════════════════ */
-(function init() {
-  const hadSave = loadSaved();
-  if (!hadSave) populateStashDefault();
-  populateBackpack();  // backpack always fresh (session carry)
-  renderGrid('bp');
-  renderGrid('st');
+════════════════════════════════════════════════════════ */
+(function init(){
+  const had=loadAll();
+  if(!had) populateST();
+  if(!had) populateEquipped();
+  populateBP(); // always fresh
+  // Apply sizing after first paint so offsetHeight etc. are settled
+  requestAnimationFrame(()=>{
+    applyCellSize();
+    renderGrid('bp');
+    renderGrid('st');
+    renderAllSlots();
+    updateStats();
+  });
 })();
 </script>
 </body>
